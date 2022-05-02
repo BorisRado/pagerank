@@ -1,0 +1,24 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+float square(float val) {
+    return val * val;
+}
+
+float get_norm_difference(float * pagerank_old,
+            float * pagerank_new, int len) {
+    double sum_of_squares = 0.0;
+
+    for (int i = 0; i < len; i++) {
+        sum_of_squares += square(pagerank_new[i] - pagerank_old[i]);
+    }
+    return sqrt(sum_of_squares);
+
+}
+
+void swap_pointers(float ** a, float ** b) {
+    float * c = *a;
+    *a = *b;
+    *b = c;
+}
