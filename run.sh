@@ -18,6 +18,6 @@ gcc $1 -lm -fopenmp -O2
 # run the program
 ./a.out $2 $3
 
-SECONDS=0
-~/.venv/networkx/bin/python3 py_src/compare_pagerank.py $2 $3
-echo "Computation with networkx took $SECONDS seconds"
+# SECONDS=0
+# ~/.venv/networkx/bin/python3 py_src/compare_pagerank.py $2 $3
+# echo "Computation with networkx took $SECONDS seconds"

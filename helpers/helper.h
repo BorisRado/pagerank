@@ -22,3 +22,13 @@ void swap_pointers(float ** a, float ** b) {
     *a = *b;
     *b = c;
 }
+
+void compare_vectors(float * a, float * b, int n) {
+    for (int i = 0; i < n; i++) 
+        if (fabsf(a[i] - b[i]) > 1e-6) {
+            printf("Inconsistencies in the two vectors!!!\n");
+            exit(1);
+        }
+    printf("No differences found in the two vectors\n");
+    
+}
