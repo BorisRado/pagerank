@@ -9,7 +9,6 @@ def read_graph(filename):
     
     with open(filename, 'r') as file:
         nodes_count, _ = get_nodes(file.readline())
-        print(nodes_count)
         G.add_nodes_from(range(nodes_count))
 
         for line in file:

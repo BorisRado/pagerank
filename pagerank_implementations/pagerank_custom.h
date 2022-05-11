@@ -24,6 +24,7 @@ float * pagerank_custom_1(int ** graph, int nodes_count, double epsilon) {
         for (i = 0; i < nodes_count; i++)
             pagerank_new[i] = 0;
 
+        // #pragma omp parallel private(i,j)
         for (i = 0; i < nodes_count; i++) {
             float pagerank_contribution =
                 TELEPORTATION_PROBABILITY * pagerank_old[i] / (float)graph[i][0];
