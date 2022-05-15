@@ -25,6 +25,11 @@ int read_edges(char * file_name, int *** edges, int ** out_degrees,
     int i;
     
     fp = fopen(file_name, "r");
+    if (fp == NULL) {
+        printf("ERROR while reading graph `%s`", file_name);
+        exit(1);
+    }
+
     int from, to;
     
     // read number of nodes and edges
@@ -56,65 +61,22 @@ int read_edges(char * file_name, int *** edges, int ** out_degrees,
 
 }
 
-int format_graph(int ** edges, int * out_degrees, int *** graph,
-        int nodes_count, int edges_count) {
-    /*
-    Formats the edges contained in `edges` to the following format:
-        [node]: neighbors_count | neighbor1 | neighbor2 | ...
-    In other words, the array will be composed of `n` arrays. The array at index
-    `i` will contain in the first entry the number of outgoing connections `out`,
-    and then it will contain `out` indexes, that will state to which nodes the node
-    `i` points to.
-
-    Parameters:
-        - (in) edges, list of edges obtained from the `read_edges` function
-        - (in) out_degrees, array containing the number of outgoing edges for each node
-        - (out) graph, the structure where the final graph will be saved
-        - (in) nodes_count, edges_count
-    Return value: 0 if everything ok, 1 otherwise
-    */
-
-    int * contiguous_space;
-    int i;
-    
-    contiguous_space = (int*) malloc((edges_count + nodes_count) * sizeof(int));
-    *graph = (int**) malloc(nodes_count * sizeof(int *));
-    int CDF = 0;
-    for (i = 0; i < nodes_count; i++) {
-        (*graph)[i] = &contiguous_space[CDF];
-        CDF = CDF + 1 + out_degrees[i];
-        (*graph)[i][0] = out_degrees[i];
-        out_degrees[i] = 0;
-    }
-
-    // omp seems not to improve the performances
-    // int threads_count = omp_get_max_threads();
-    // printf("Running %d threads\n", threads_count);
-    // #pragma omp parallel for schedule(guided)
-    int from, to;
-    for (i = 0; i < edges_count; i++) {
-        from = edges[i][0];
-        to = edges[i][1];
-        (*graph)[from][out_degrees[from] + 1] = to;
-        out_degrees[from]++;
-    }
-    return 0;
-}
-
-int format_graph_2(int ** edges, int * out_degrees, int *** graph,
-        int ** leaves, int nodes_count, int edges_count) {
+int format_graph_out(int ** edges, int * out_degrees, int * leaves_count, int ** leaves, 
+        int *** graph, int nodes_count, int edges_count) {
     /*
     Formats the edges contained in `edges` to the following format:
         [node]: neighbor1 | neighbor2 | ...
-    In other words, the array will be composed of `n+1` arrays. The array at index
-    `i` will contain `out` indexes, that will state to which nodes the node
-    `i` points to. The final array, the one at index `nodes_count`, will state 
-    in the first entry how many nodes have 0 out degree, and then it will list such
-    nodes
+    In other words, the array will be composed of `n` arrays, where `n` is the 
+    number of nodes. The array at index `i` will be composed of `out` entries, `out`
+    being the out degree of the node, that will state to which nodes the node
+    `i` points to. `leaves_count` and `leaves` will contain the nodes that have no 
+    outgoing edges (we call them leaves).
 
     Parameters:
         - (in) edges, list of edges obtained from the `read_edges` function
         - (in) out_degrees, array containing the number of outgoing edges for each node
+        - (out) leaves_count, in this variable will be stored the number of 0-degree nodes
+        - (out) leaves, will contain `leaves_count` entries, and will state which nodes have 0 out degree
         - (out) graph, the structure where the final graph will be saved
         - (in) nodes_count, edges_count
     Return value: 0 if everything ok, 1 otherwise
@@ -122,36 +84,28 @@ int format_graph_2(int ** edges, int * out_degrees, int *** graph,
 
     int * contiguous_space;
     int i;
-    
+
     // count how many nodes have 0 out degree
-    int leaves_count = 0;  // leaves are nodes with 0 out-degree
+    *leaves_count = 0;
     for (i = 0; i < nodes_count; i++) {
-        leaves_count += out_degrees[i] == 0;
+        *leaves_count += out_degrees[i] == 0;
     }
+    *leaves = (int *) malloc(*leaves_count * sizeof(int));
+    
+    contiguous_space = (int*) malloc(edges_count * sizeof(int));
+    *graph = (int**) malloc(nodes_count * sizeof(int *));
+    int CDF = 0, _leaves_count = 0;
 
-    contiguous_space = (int*) malloc((edges_count) * sizeof(int));
-    *graph = (int**) malloc((nodes_count) * sizeof(int *));
-    *leaves = (int *) malloc(leaves_count * sizeof(int));
-    (*leaves)[0] = leaves_count;
-
-    int CDF = 0;
-    leaves_count = 0;
     for (i = 0; i < nodes_count; i++) {
         if (out_degrees[i] == 0) {
-            (*leaves)[leaves_count + 1] = i;
-            leaves_count++;
+            (*leaves)[_leaves_count] = i;
+            _leaves_count++;
         }
         (*graph)[i] = &contiguous_space[CDF];
         CDF = CDF + out_degrees[i];
         out_degrees[i] = 0;
     }
-    // for (i = 1; i <= (*leaves)[0]; i++) {
-    //     printf("leaf: %d\n", (*leaves)[i]);
-    // }
-    // printf("ok\n");
-    // fflush(stdout);
 
-    // omp seems not to improve the performances
     // int threads_count = omp_get_max_threads();
     // printf("Running %d threads\n", threads_count);
     // #pragma omp parallel for schedule(guided)
@@ -161,6 +115,66 @@ int format_graph_2(int ** edges, int * out_degrees, int *** graph,
         to = edges[i][1];
         (*graph)[from][out_degrees[from]] = to;
         out_degrees[from]++;
+    }
+    return 0;
+}
+
+int format_graph_in(int ** edges, int * in_degrees, int * out_degrees, int * leaves_count, int ** leaves,
+        int *** graph, int nodes_count, int edges_count) {
+    
+    /*
+    Formats the edges contained in `edges` to the following format:
+        [node]: neighbor1 | neighbor2 | ...
+    In other words, the array will be composed of `n` arrays, where `n` is the 
+    number of nodes. The array at index `i` will be composed of `in` entries, `in`
+    being the in degree of the node, that will state which nodes have a connection
+    node `i`. `leaves_count` and `leaves` will contain the nodes that have no 
+    outgoing edges (we call them leaves).
+
+    Parameters:
+        - (in) edges, list of edges obtained from the `read_edges` function
+        - (in) in_degrees, array containing the number of incoming edges for each node
+        - (in) out_degrees, array containing the number of outgoing edges for each node
+        - (out) leaves_count, in this variable will be stored the number of 0-out-degree nodes
+        - (out) leaves, will contain `leaves_count` entries, and will state which nodes have 0 out degree
+        - (out) graph, the structure where the final graph will be saved
+        - (in) nodes_count, edges_count
+    Return value: 0 if everything ok, 1 otherwise
+    */
+
+    int * contiguous_space;
+    int i;
+
+    // count how many nodes have 0 out degree
+    *leaves_count = 0;
+    for (i = 0; i < nodes_count; i++) {
+        *leaves_count += out_degrees[i] == 0;
+    }
+    *leaves = (int *) malloc(*leaves_count * sizeof(int));
+    
+    contiguous_space = (int*) malloc(edges_count * sizeof(int));
+    *graph = (int**) malloc(nodes_count * sizeof(int *));
+    int CDF = 0, _leaves_count = 0;
+
+    for (i = 0; i < nodes_count; i++) {
+        if (out_degrees[i] == 0) {
+            (*leaves)[_leaves_count] = i;
+            _leaves_count++;
+        }
+        (*graph)[i] = &contiguous_space[CDF];
+        CDF = CDF + in_degrees[i];
+        in_degrees[i] = 0;
+    }
+
+    // int threads_count = omp_get_max_threads();
+    // printf("Running %d threads\n", threads_count);
+    // #pragma omp parallel for schedule(guided)
+    int from, to;
+    for (i = 0; i < edges_count; i++) {
+        from = edges[i][0];
+        to = edges[i][1];
+        (*graph)[to][in_degrees[to]] = from;
+        in_degrees[to]++;
     }
     return 0;
 }
