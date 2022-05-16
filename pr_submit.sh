@@ -7,4 +7,4 @@
 #SBATCH --time=00:00:10
 #SBATCH --output=logs/logs.txt
 
-srun ./run.sh main.c data/collaboration_imdb_out.net results/collaboration_imdb_out.net
+srun ./run.sh main.c data/web-Google_out.txt results/collaboration_imdb_out.net

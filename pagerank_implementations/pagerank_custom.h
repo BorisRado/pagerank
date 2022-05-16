@@ -13,10 +13,12 @@ float * pagerank_custom_1(int ** graph, int nodes_count, double epsilon) {
     float * pagerank_new = (float*) malloc(nodes_count * sizeof(float));
     
     int i, j;
-    float init_value = 1 / (float)nodes_count;
 
+    float init_value = 1 / (float)nodes_count;
     for (i = 0; i < nodes_count; i++)
         pagerank_old[i] = init_value;
+
+    int iterations = 0;
 
     do {
 
@@ -40,8 +42,52 @@ float * pagerank_custom_1(int ** graph, int nodes_count, double epsilon) {
             pagerank_new[i] += node_addition;
         
         swap_pointers(&pagerank_old, &pagerank_new);
+        iterations++;
 
     } while (get_norm_difference(pagerank_old, pagerank_new, nodes_count) > epsilon);
+    printf("Total pagerank iterations: %d\n", iterations);
+    swap_pointers(&pagerank_old, &pagerank_new);
+    return pagerank_new;
+}
+
+float * pagerank_custom_2(int ** graph, int * out_degrees, int * leaves, int nodes_count, double epsilon) {
+    float * pagerank_old = (float*) malloc(nodes_count * sizeof(float));
+    float * pagerank_new = (float*) malloc(nodes_count * sizeof(float));
+    
+    int i, j;
+
+    float init_value = 1 / (float)nodes_count;
+    for (i = 0; i < nodes_count; i++)
+        pagerank_old[i] = init_value;
+
+    int iterations = 0;
+
+    do {
+
+        float leaked_pagerank = 0.;
+        for (i = 1; i <= leaves[0]; i++) {
+            leaked_pagerank += pagerank_old[leaves[i]]; 
+        }
+        leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - TELEPORTATION_PROBABILITY);
+
+        for (i = 0; i < nodes_count; i++)
+            pagerank_new[i] = leaked_pagerank / (float)nodes_count;
+
+        // #pragma omp parallel private(i,j)
+        for (i = 0; i < nodes_count; i++) {
+            float pagerank_contribution =
+                TELEPORTATION_PROBABILITY * pagerank_old[i] / (float)out_degrees[i];
+            for (j = 0; j < out_degrees[i]; j++){
+                pagerank_new[graph[i][j]] += pagerank_contribution;
+            }
+
+        }
+        swap_pointers(&pagerank_old, &pagerank_new);
+        iterations++;
+        if (iterations > 100) break;
+
+    } while (get_norm_difference(pagerank_old, pagerank_new, nodes_count) > epsilon);
+    printf("Total pagerank iterations: %d\n", iterations);
     swap_pointers(&pagerank_old, &pagerank_new);
     return pagerank_new;
 }
