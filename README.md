@@ -26,3 +26,15 @@ The currently sopported ways to store the graphs in memory are the following:
 5. (*optional*) Verify the correctness of the results, `python3 py_src/compare_pagerank.py <graph_file> <output_file>`. Note that this command requires `networkx`, `numpy` and `scipy`. The script computes the true pagerank with networkx, and compares the results with the ones reported in `<output_file>`.
 
 Alternatively, you may use the `run.sh` script in place of the steps $3$, $4$, and $5$.
+
+### Setting up Python on HPC
+Run the following commands:
+```
+python3 -m venv ~/.venv/networkx python=3.8
+source ~/.venv/networkx/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Transferring graphs to HPC
+Create a directory `data`, and from your local PC run `scp -i <key> -r data/* <username>@nsc-login1.ijs.si:~/hpc/pagerank/data`
