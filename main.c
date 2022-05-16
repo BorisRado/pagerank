@@ -54,14 +54,12 @@ float * measure_time_custom_matrix_out(int ** edges, int * out_degrees, int node
     float * pagerank = pagerank_custom_out(graph, out_degrees, leaves_count, leaves, nodes_count, 0.0000002);
     end = omp_get_wtime();
     printf("Pagerank computation time (serial): %.4f\n\n", end - start);
-    fflush(stdout);
     free(graph);
     return pagerank;
 
 }
 
 float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_degrees, int nodes_count, int edges_count) {
-    // this implementation works ok, but is not promising as the one in which we store the outgoing edges
     double start, end;
     int ** graph;
     int * leaves;
@@ -74,10 +72,17 @@ float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_
     printf("Matrix formatting time: %.4f\n", end - start);
     
     start = omp_get_wtime();
-    float * pagerank = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, 0.0000002);
+    float * pagerank = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, 0.0000002, false);
     end = omp_get_wtime();
     printf("Pagerank computation time (serial): %.4f\n\n", end - start);
-    fflush(stdout);
+
+    start = omp_get_wtime();
+    float * pagerank_omp = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, 0.0000002, true);
+    end = omp_get_wtime();
+    printf("Pagerank computation time (OMP with %d threads): %.4f\n\n", omp_get_max_threads(), end - start);
+    
+    compare_vectors(pagerank, pagerank_omp, nodes_count);
+
     free(graph);
     return pagerank;
 

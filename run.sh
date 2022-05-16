@@ -13,7 +13,7 @@ if [ "$#" -ne 3 ]; then
 fi
 
 # compile the program
-gcc $1 -lm -fopenmp -O2
+gcc $1 -lm -fopenmp -lOpenCL -O2
 
 # run the program
 ./a.out $2 $3
