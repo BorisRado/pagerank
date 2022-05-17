@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --reservation=fri
-#SBATCH --nodes=1
+#SBATCH -N1
+#SBATCH -n1
 #SBATCH --tasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=00:00:40
+#SBATCH --time=00:00:02
 #SBATCH --output=logs/logs.txt
 #SBATCH --gpus=1
 

@@ -23,7 +23,7 @@ int ocl_init(char * kernel_filename, cl_command_queue * command_queue, cl_contex
             cl_program * program) 
 {
     int i;
-    cl_int clStatus;
+    cl_int clStatus=0;
 
     // Read kernel from file
     FILE *fp;
@@ -43,39 +43,58 @@ int ocl_init(char * kernel_filename, cl_command_queue * command_queue, cl_contex
 
     // Get platforms
     cl_uint num_platforms;
-    clStatus = clGetPlatformIDs(0, NULL, &num_platforms);
+    clStatus |= clGetPlatformIDs(0, NULL, &num_platforms);
     
     cl_platform_id *platforms = (cl_platform_id *)malloc(sizeof(cl_platform_id)*num_platforms);
-    clStatus = clGetPlatformIDs(num_platforms, platforms, NULL);
+    clStatus |= clGetPlatformIDs(num_platforms, platforms, NULL);
 
     //Get platform devices
     cl_uint num_devices;
-    clStatus = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
+    clStatus |= clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, 0, NULL, &num_devices);
     num_devices = 1; // limit to one device
     cl_device_id *devices = (cl_device_id *)malloc(sizeof(cl_device_id)*num_devices);
-    clStatus = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, num_devices, devices, NULL);
+    clStatus |= clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_GPU, num_devices, devices, NULL);
+    if (clStatus != CL_SUCCESS) {
+        printf("Error while reading devices etc., code %d\n", clStatus);
+        return 1;
+    }
+
 
     // Context
     *context = clCreateContext(NULL, num_devices, devices, NULL, NULL, &clStatus);
+    if (clStatus != CL_SUCCESS) {
+        printf("Error while creating context, return value %d\n", clStatus);
+        return 1;
+    }
+
  
     // Command queue
     *command_queue = clCreateCommandQueue(*context, devices[0],
             CL_QUEUE_PROFILING_ENABLE, &clStatus);
+    if (clStatus != CL_SUCCESS) {
+        printf("Error while creating command queue, return value %d\n", clStatus);
+        return 1;
+    }
 
     // Create and build a program
     *program = clCreateProgramWithSource(*context, 1, (const char **)&source_str, NULL, &clStatus);
     clStatus = clBuildProgram(*program, 1, devices, NULL, NULL, NULL);
+    size_t build_log_len;
+    clGetProgramBuildInfo(*program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_len);
 
     // Log
-    size_t build_log_len;
-    char *build_log;
-    clStatus = clGetProgramBuildInfo(*program, devices[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &build_log_len);
     if (build_log_len > 2)
     {
+        char *build_log;
         build_log =(char *)malloc(sizeof(char)*(build_log_len+1));
         clStatus = clGetProgramBuildInfo(*program, devices[0], CL_PROGRAM_BUILD_LOG, 
                                         build_log_len, build_log, NULL);
+        printf("%s\n", build_log);
         free(build_log);
+        return 1;
+    }
+    if (clStatus != CL_SUCCESS) {
+        printf("Error while creating program, return value %d\n", clStatus);
         return 1;
     }
     

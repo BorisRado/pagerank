@@ -10,6 +10,8 @@
 float * measure_time_custom_matrix_out(int ** edges, int * out_degrees, int nodes_count, int edges_count);
 float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_degrees, int nodes_count, int edges_count);
 
+#define EPSILON 0.0000002
+
 int main(int argc, char* argv[]) {
 
     if (argc != 3) {
@@ -51,7 +53,7 @@ float * measure_time_custom_matrix_out(int ** edges, int * out_degrees, int node
     printf("Matrix formatting time: %.4f\n", end - start);
 
     start = omp_get_wtime();
-    float * pagerank = pagerank_custom_out(graph, out_degrees, leaves_count, leaves, nodes_count, 0.0000002);
+    float * pagerank = pagerank_custom_out(graph, out_degrees, leaves_count, leaves, nodes_count, EPSILON);
     end = omp_get_wtime();
     printf("Pagerank computation time (serial): %.4f\n\n", end - start);
     free(graph);
@@ -72,14 +74,21 @@ float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_
     printf("Matrix formatting time: %.4f\n", end - start);
     
     start = omp_get_wtime();
-    float * pagerank = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, 0.0000002, false);
+    float * pagerank = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, EPSILON, false);
     end = omp_get_wtime();
     printf("Pagerank computation time (serial): %.4f\n\n", end - start);
 
+    // omp
     start = omp_get_wtime();
-    float * pagerank_omp = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, 0.0000002, true);
+    float * pagerank_omp = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, EPSILON, true);
     end = omp_get_wtime();
     printf("Pagerank computation time (OMP with %d threads): %.4f\n\n", omp_get_max_threads(), end - start);
+
+    // ocl
+    start = omp_get_wtime();
+    float * pagerank_ocl = pagerank_custom_in_ocl(graph, in_degrees, out_degrees, leaves_count, leaves ,nodes_count, EPSILON);
+    end = omp_get_wtime();
+
     
     compare_vectors(pagerank, pagerank_omp, nodes_count);
 
