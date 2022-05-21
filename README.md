@@ -42,3 +42,13 @@ pip install -r requirements.txt
 
 ### Transferring graphs to HPC
 Create a directory `data`, and from your local PC run `scp -i <key> -r data/* <username>@nsc-login1.ijs.si:~/hpc/pagerank/data`
+
+## How is the project structured?
+In order to carry out all the experiments, compile and run the `main.c`, which invokes the code to read the graph, format it, and finally run the pagerank algorithm with multiple algorithms we developed. You may use `run.sh` locally or `sbatch pr_submit.sh` on HPC in order to compile and run (and optionally test the correctness of the results).
+
+Apart from that, the code is logically divided into folders:
+* `helpers`: contains some common code, that is used multiple times in the project. For example, writing data to a file, initializing OCL platforms and other required structures, swapping pointers, ...
+* `kernels`: contains the OpenCL kernels that are used to compute the pagerank on GPUs;
+* `pagerank_implementations`: contains the actual implementations that compute the pagerank;
+* `py_src`: contain the python code used to format the graph into the provided format (`prepare_graph.py`) and to compute the true pagerank value with an established library, i.e. networkx (`compare_pageranks.py`);
+* `readers`: contain functions that read the graph from the file system and format it in the required type;

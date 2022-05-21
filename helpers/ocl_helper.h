@@ -98,6 +98,9 @@ int ocl_init(char * kernel_filename, cl_command_queue * command_queue, cl_contex
         return 1;
     }
     
+    free(source_str);
+    free(devices);
+    free(platforms);
     return 0;
 }
 
@@ -110,4 +113,10 @@ int ocl_destroy(cl_command_queue command_queue, cl_context context,
     clStatus = clReleaseProgram(program);
     clStatus = clReleaseCommandQueue(command_queue);
     clStatus = clReleaseContext(context);
+}
+
+void ocl_swap_pointers(cl_mem * a, cl_mem * b) {
+    cl_mem c = *a;
+    *a = *b;
+    *b = c;
 }

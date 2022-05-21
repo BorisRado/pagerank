@@ -86,11 +86,13 @@ float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_
 
     // ocl
     start = omp_get_wtime();
-    float * pagerank_ocl = pagerank_custom_in_ocl(graph, in_degrees, out_degrees, leaves_count, leaves ,nodes_count, EPSILON);
+    float * pagerank_ocl = pagerank_custom_in_ocl(graph, in_degrees, out_degrees, leaves_count,
+                    leaves ,nodes_count, edges_count, EPSILON);
     end = omp_get_wtime();
+    printf("Pagerank computation time (OCL): %.4f\n\n", omp_get_max_threads(), end - start);
 
-    
     compare_vectors(pagerank, pagerank_omp, nodes_count);
+    compare_vectors(pagerank, pagerank_ocl, nodes_count);
 
     free(graph);
     return pagerank;
