@@ -108,6 +108,50 @@ __kernel void compute_norm_difference_fin(
 
 }
 
+__kernel void pagerank_step_simple(
+    __global int * graph,
+    __global int * in_deg_CDF, // used to correctly address the graph
+    __global int * in_degrees,
+    __global int * out_degrees,
+    __global float * pagerank_old,
+    __global float * pagerank_new,
+    __global float * leaked_pagerank_addition_glob,
+    __global int * nodes_count,
+    int threads_per_row,
+    __local float * partial
+) {
+    /**
+     * this kernel performs one step of pagerank computation (one "matrix multiplication").
+     * Simple version: each thread computes one node pagerank
+     * 
+     * Parameters:
+     *      * `threads_per_row`: ignored by the function
+     *      * `leaked_pagerank_addition`: value as computed by the compute_leaked_pagerank kernel
+     */
+
+    int lid = get_local_id(0);
+    int gid = get_global_id(0);
+    float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float) *nodes_count;
+
+    float pagerank_contribution;
+    int i;
+    int pointing_node;
+
+    // simple version: each thread works on a line (i.e. processes the pagerank for one node)
+    while (gid < *nodes_count) {
+
+        float i_pr = leaked_pagerank_addition;
+        for (i = 0; i < in_degrees[gid]; i++){
+            pointing_node = graph[in_deg_CDF[gid] + i];
+            i_pr += 0.85 * pagerank_old[pointing_node] / out_degrees[pointing_node];
+        }
+        pagerank_new[gid] = i_pr;
+
+        gid += get_global_size(0);
+    }
+
+}
+
 __kernel void pagerank_step(
     __global int * graph,
     __global int * in_deg_CDF, // used to correctly address the graph
@@ -116,50 +160,52 @@ __kernel void pagerank_step(
     __global float * pagerank_old,
     __global float * pagerank_new,
     __global float * leaked_pagerank_addition_glob,
-    int nodes_count,
-    int threads_per_row
+    __global int * nodes_count,
+    int threads_per_row,
+    __local float * partial
 ) {
     /**
      * this kernel performs one step of pagerank computation (one "matrix multiplication").
+     * It assumes that local work group size is a multiple of `threads_per_row` and that `threads_per_row` is a power of 2
      * 
      * Parameters:
      *      * `threads_per_row`: how many threads compute concurrently the new pagerank value of some node
      *      * `leaked_pagerank_addition`: value as computed by the compute_leaked_pagerank kernel
      */
-
-     // TO-DO: this function has not yet been tested
-
     int lid = get_local_id(0);
     int gid = get_global_id(0);
-    float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float) nodes_count;
+    float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float) *nodes_count;
 
     float pagerank_contribution;
     int i;
 
-    // if (lid == 0) {
-    //     printf("start: %f\n", leaked_pagerank_addition);
-    // }
-    // if (lid == 0) {
-    //     // printf("here\n");
-    //     for(int i = 0; i < nodes_count; i++) {
-    //         printf("%d: ", i);
-    //         for (int j = 0; j < in_degrees[i]; j++) {
-    //             printf("%d ", graph[in_deg_CDF[i] + j]);
-    //         }
-    //         printf("\n");
-    //     }
-    //     printf("\n");
-    // }
-    // simple version: each thread works on a line (i.e. processes the pagerank for one node)
-    while (gid < nodes_count) {
+    int _node = get_global_id(0) / threads_per_row;
+    int _offset = get_global_id(0) % threads_per_row;
+    int _increment = get_global_size(0) / threads_per_row;
+    int pointing_node;
+    while (_node < *nodes_count) {
 
-        float i_pr = leaked_pagerank_addition;
-        for (i = 0; i < in_degrees[gid]; i++){
-            i_pr += 0.85 * pagerank_old[graph[in_deg_CDF[gid] + i]] / out_degrees[graph[in_deg_CDF[gid] + i]];
+        float i_pr = 0.;
+        for (i = _offset; i < in_degrees[_node]; i += threads_per_row){
+            pointing_node = graph[in_deg_CDF[_node] + i];
+            i_pr += 0.85 * pagerank_old[pointing_node] / out_degrees[pointing_node];
         }
-        pagerank_new[gid] = i_pr;
 
-        gid += get_global_size(0);
+        // save to local memory
+        partial[lid] = i_pr;
+
+        // perform reduction
+        for (int limit = threads_per_row / 2; limit >= 1; limit /= 2) {
+            if (lid % threads_per_row < limit) {
+                partial[lid] += partial[lid + limit];
+            }
+        }
+
+        // write result back to global memory
+        if (_offset == 0)
+            pagerank_new[_node] = partial[lid] + leaked_pagerank_addition;
+
+        _node += _increment;
     }
 
 }
