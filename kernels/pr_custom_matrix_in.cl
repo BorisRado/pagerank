@@ -1,5 +1,5 @@
 __kernel void compute_leaked_pagerank(
-    int leaves_count,
+    __global int * leaves_count,
     __global int * leaves,
     __global float * pagerank,
     __global float * leaked_pagerank_per_node,
@@ -17,7 +17,7 @@ __kernel void compute_leaked_pagerank(
     // note: the code assumes that the local size is a power of 2
     int lid = get_local_id(0);
     float leak = 0.0;
-    while (lid < leaves_count) {
+    while (lid < *leaves_count) {
         leak += pagerank[leaves[lid]];
         lid += get_global_size(0);
     }
@@ -37,17 +37,16 @@ __kernel void compute_leaked_pagerank(
     if (lid == 0) {
         float leaked_pagerank_per_node_ = leaks[0] + (1 - leaks[0]) * (1 - 0.85); // TO-DO pass teleportation probability
         *leaked_pagerank_per_node = leaked_pagerank_per_node_;
-        // printf("leaked: %f\n", *leaked_pagerank_per_node);
     }
 
 }
 
 __kernel void compute_norm_difference_wg(
-    __global float * a, // e.g. old pagerank
-    __global float * b, // e.g. new pagerank
-    __global float * group_diffs, // array containing `get_num_groups` elements
-    __local float * partial, // local item size
-    int n // number of elements in a and b
+    __global float * a,             // e.g. old pagerank
+    __global float * b,             // e.g. new pagerank
+    __global float * group_diffs,   // array containing `get_num_groups` elements
+    __local float * partial,        // local item size
+    __global int * nodes_count      // number of elements in a and b
 ) {
     /**
      * each work group computes the sum of square differences on a sectin of the data,
@@ -56,12 +55,11 @@ __kernel void compute_norm_difference_wg(
      */
     
     // note: the code assumes that the local size is a power of 2
-
     int gid = get_global_id(0);
     int lid = get_local_id(0);
 
     float _diff = 0.0;
-    while (gid < n) {
+    while (gid < *nodes_count) {
         _diff += pow(a[gid] - b[gid], 2);
         gid += get_global_size(0);
     }
@@ -92,7 +90,6 @@ __kernel void compute_norm_difference_fin(
     
     // note: the code assumes that the local size is a power of 2. It should be set to the smallest
     // power of two that is larger or equal to the number of work groups in the previous step
-    
     int lid = get_local_id(0);
     if (lid < n)
         partial[lid] = group_diffs[lid];

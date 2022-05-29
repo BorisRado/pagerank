@@ -4,7 +4,7 @@
 
 #define MAX_SOURCE_SIZE (16384)
 
-void print_ocl_time(cl_event event, cl_command_queue queue, char* event_name) {
+float print_ocl_time(cl_event event, cl_command_queue queue, char* event_name) {
     clWaitForEvents(1, &event);
     clFinish(queue);
     cl_ulong time_start;
@@ -14,9 +14,17 @@ void print_ocl_time(cl_event event, cl_command_queue queue, char* event_name) {
     clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &time_end, NULL);
 
     unsigned long duration = time_end-time_start;
-    double duration_s = (double) duration / 1e9;
-    printf("`%s` time is: %.4f milliseconds \n", event_name, duration_s);
+    float duration_s = (float) duration / 1e9;
+    // printf("`%s` time is: %.4f milliseconds \n", event_name, duration_s);
     clReleaseEvent(event);
+    return duration_s;
+}
+
+void check_status(cl_int clStatus, char* msg) {
+    if (clStatus != CL_SUCCESS) {
+        printf("Something went wrong while %s (%d). Exiting... \n", msg, clStatus);
+        exit(1);
+    }
 }
 
 int ocl_init(char * kernel_filename, cl_command_queue * command_queue, cl_context * context,

@@ -9,11 +9,15 @@
 
 if [ "$#" -ne 3 ]; then
     echo "Illegal number of parameters"
-    exit 1;
+    exit 1
 fi
 
 # compile the program
 gcc $1 -lm -fopenmp -lOpenCL -O2
+if [ $? -ne 0 ]; then
+    echo "Compilation with gcc failed. Exiting..."
+    exit 1
+fi
 
 # run the program
 ./a.out $2 $3
