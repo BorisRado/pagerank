@@ -32,3 +32,15 @@ void compare_vectors(float * a, float * b, int n) {
     printf("No differences found in the two vectors\n");
     
 }
+
+int compare_vectors_detailed(float * a, float * b, int n) {
+    int mistakes = 0;
+    for (int i = 0; i < n; i++) 
+        if (fabsf(a[i] - b[i]) > 1e-6) {
+            printf("Inconsistency at [%d]: %.8f, %.8f.\n", i, a[i], b[i]);
+            mistakes = 1;
+        }
+    if(mistakes == 0)
+        printf("No differences found in the two vectors\n");
+    return mistakes;
+}

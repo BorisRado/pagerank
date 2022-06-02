@@ -47,11 +47,15 @@ int read_edges(char * file_name, int *** edges, int ** out_degrees,
 
     i = 0;
     while (fscanf(fp, "%d\t%d", &from, &to) != EOF) {
-        (*out_degrees)[from]++;
-        (*in_degrees)[to]++;
-        (*edges)[i][0] = from;
-        (*edges)[i][1] = to;
-        i++;
+        if(from < 0 || from > *nodes_count || to < 0 || to > *nodes_count)
+            printf("ERROR: Line %d, from %d to %d\n", i, from, to);
+        else {
+            (*out_degrees)[from]++;
+            (*in_degrees)[to]++;
+            (*edges)[i][0] = from;
+            (*edges)[i][1] = to;
+            i++;
+        }
     }
     // for (i = 0; i < *nodes_count; i++)
     //     printf("here %d %d\n", i, (*out_degrees)[i]);

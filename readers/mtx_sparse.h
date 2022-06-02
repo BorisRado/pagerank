@@ -11,6 +11,8 @@ struct mtx_COO  // COOrdinates
     int num_nonzeros;
 };
 
+typedef struct mtx_COO mtx_COO;
+
 struct mtx_CSR  // Compressed Sparse Row
 {
     int *rowptr;
@@ -20,6 +22,8 @@ struct mtx_CSR  // Compressed Sparse Row
     int num_cols;
     int num_nonzeros;
 };
+
+typedef struct mtx_CSR mtx_CSR;
 
 struct mtx_ELL      // ELLiptic (developed by authors of ellipctic package)
 {
@@ -32,7 +36,7 @@ struct mtx_ELL      // ELLiptic (developed by authors of ellipctic package)
     int num_elementsinrow;    
 };
 
-struct mtx_MM
+struct mtx_MM       // Stores graph edge as a single data point
 {
     int row;
     int col;
@@ -56,24 +60,46 @@ int mtx_COO_compare(const void * a, const void * b) {
 }
 
 int mtx_COO_create_from_file(struct mtx_COO * mCOO, char * file_name) {
+    /*
+    ** File should be formated as edge list with first line containing
+    ** [node_count]\t[edge_count] and every line aferwards containing
+    ** [arc_tail]\t[arc_head] for directed graphs (both endpoints for undirected)
+    */
+
+   // read file header
     int nodes_count, edges_count;
     FILE * fp;
-
     fp = fopen(file_name, "r");
     if (fscanf(fp, "%d\t%d", &nodes_count, &edges_count) != 2)
         return 1;
 
-    // allocate matrix
+    // allocate temp matrix
     struct mtx_MM *mMM = (struct mtx_MM *)malloc(edges_count * sizeof(struct mtx_MM));
     mCOO->data = (float *) malloc(edges_count * sizeof(float));
     mCOO->col = (int *) malloc(edges_count * sizeof(int));
     mCOO->row = (int *) malloc(edges_count * sizeof(int));
 
     // read data
-    for (int i = 0; i < edges_count; i++) {
-        if(fscanf(fp, "%d\t%d\n", &mMM[i].row, &mMM[i].col));
-        mMM[i].data = 1.0; // think how to normalize later this value...
+    int from, to, i = 0;
+    int * out_degrees = (int *) calloc(nodes_count, sizeof(int));
+
+    while (fscanf(fp, "%d\t%d", &from, &to) != EOF) {
+        mMM[i].col = from;
+        mMM[i].row = to;
+        out_degrees[from]++;
+        i++;
     }
+
+    // normalize data according to outdegree
+    for(i = 0; i < edges_count; i++) {
+        // If no outgoing links, use initial probability (always teleport)
+        if(out_degrees[mMM[i].col] == 0) 
+            mMM[i].data = 1./nodes_count;
+        // Otherwise transition to one of outgoing links randomly
+        else                            
+            mMM[i].data = 1./out_degrees[mMM[i].col];
+    }
+
     fclose(fp);
 
     // sort elements
@@ -85,6 +111,10 @@ int mtx_COO_create_from_file(struct mtx_COO * mCOO, char * file_name) {
         mCOO->row[i] = mMM[i].row;
         mCOO->col[i] = mMM[i].col;
     }
+
+    mCOO->num_rows = nodes_count;
+    mCOO->num_cols = nodes_count;
+    mCOO->num_nonzeros = edges_count;
 
     free(mMM);
 
