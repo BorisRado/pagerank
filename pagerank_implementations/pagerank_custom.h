@@ -6,6 +6,7 @@
 #include "../helpers/helper.h"
 #include "../helpers/ocl_helper.h"
 #include "/usr/include/openmpi-x86_64/mpi.h"
+#include "../global_config.h"
 
 /*
 This script contains implementations that use the custom matrix representation
@@ -18,7 +19,7 @@ void update_sizes(size_t new_groups, size_t new_local_item_size,
     *num_groups = new_groups;
 }
 
-#define TELEPORTATION_PROBABILITY 0.85
+
 
 void init_pagerank(float ** pagerank_old, float ** pagerank_new, int nodes_count) {
     *pagerank_old = (float*) malloc(nodes_count * sizeof(float));
@@ -44,14 +45,14 @@ float * pagerank_custom_out(int ** graph, int * out_degrees, int leaves_count, i
         for (i = 0; i < leaves_count; i++) {
             leaked_pagerank += pagerank_old[leaves[i]]; 
         }
-        leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - TELEPORTATION_PROBABILITY);
+        leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - DAMPENING);
 
         for (i = 0; i < nodes_count; i++)
             pagerank_new[i] = leaked_pagerank / (float)nodes_count;
 
         for (i = 0; i < nodes_count; i++) {
             float pagerank_contribution =
-                TELEPORTATION_PROBABILITY * pagerank_old[i] / (float)out_degrees[i];
+                DAMPENING * pagerank_old[i] / (float)out_degrees[i];
             for (j = 0; j < out_degrees[i]; j++){
                 pagerank_new[graph[i][j]] += pagerank_contribution;
             }
@@ -82,7 +83,7 @@ float * pagerank_custom_in(int ** graph, int * in_degrees, int * out_degrees,
         for (i = 0; i < leaves_count; i++) {
             leaked_pagerank += pagerank_old[leaves[i]]; 
         }
-        leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - TELEPORTATION_PROBABILITY);
+        leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - DAMPENING);
         // printf("leaked... %f\n", leaked_pagerank);
         float init_pagerank = leaked_pagerank / (float)nodes_count;
 
@@ -90,7 +91,7 @@ float * pagerank_custom_in(int ** graph, int * in_degrees, int * out_degrees,
         for (i = 0; i < nodes_count; i++) {
             float i_pr = init_pagerank;
             for (j = 0; j < in_degrees[i]; j++){
-                i_pr += TELEPORTATION_PROBABILITY * pagerank_old[graph[i][j]] / out_degrees[graph[i][j]];
+                i_pr += DAMPENING * pagerank_old[graph[i][j]] / out_degrees[graph[i][j]];
             }
             pagerank_new[i] = i_pr;
         }
@@ -311,7 +312,7 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
             for (i = 0; i < leaves_count; i++) {
                 leaked_pagerank += pagerank_old[leaves[i]]; 
             }
-            leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - TELEPORTATION_PROBABILITY);
+            leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - DAMPENING);
             // printf("leaked... %f\n", leaked_pagerank);
             init_pagerank = leaked_pagerank / (float)nodes_count;
         }
@@ -322,7 +323,7 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
         for (i = my_start; i < my_end; i++) {
             float i_pr = init_pagerank;
             for (j = 0; j < in_degrees[i]; j++){
-                i_pr += TELEPORTATION_PROBABILITY * pagerank_old[graph[i][j]] / out_degrees[graph[i][j]];
+                i_pr += DAMPENING * pagerank_old[graph[i][j]] / out_degrees[graph[i][j]];
             }
             my_pagerank_new[i - my_start] = i_pr;
         }

@@ -1,3 +1,6 @@
+#ifndef HELPER
+#define HELPER
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -44,3 +47,5 @@ int compare_vectors_detailed(float * a, float * b, int n) {
         printf("No differences found in the two vectors\n");
     return mistakes;
 }
+
+#endif

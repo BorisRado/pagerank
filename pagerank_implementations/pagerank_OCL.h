@@ -1,9 +1,5 @@
-#define WORKGROUP_SIZE 256
-#define WARP_SIZE 16
-#define EPSILON 0.0000002
-#define DAMPENING 0.85
-
 #include <CL/cl.h>
+#include "../global_config.h"
 
 
 float * pagerank_CSR_vector(mtx_CSR mCSR) {
@@ -65,7 +61,7 @@ float * pagerank_CSR_vector(mtx_CSR mCSR) {
     float norm;
     double dtimeCSR_multh = omp_get_wtime();
 
-    do {
+    while (1) {
         // Schedule iteration on GPU
         clStatus |= clEnqueueWriteBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
                                         mCSR.num_cols*sizeof(cl_float), pagerank_in, 0, NULL, NULL);				
@@ -83,8 +79,14 @@ float * pagerank_CSR_vector(mtx_CSR mCSR) {
         // Fix output vector
         for(int i = 0; i < mCSR.num_cols; i++)
             pagerank_in[i] = pagerank_in[i]*DAMPENING + (1. - DAMPENING)/mCSR.num_cols;
+
+        // Check exit criteria
+        if(CHECK_CONVERGENCE && get_norm_difference(pagerank_in, pagerank_out, mCSR.num_cols) <= EPSILON)
+            break;
         
-    } while(get_norm_difference(pagerank_in, pagerank_out, mCSR.num_cols) > EPSILON);
+        if(MAX_ITER > 0 && iterations >= MAX_ITER)
+            break;
+    }
 
     dtimeCSR_multh = omp_get_wtime() - dtimeCSR_multh;
 

@@ -6,13 +6,10 @@
 #include "readers/mtx_sparse.h"
 #include "pagerank_implementations/pagerank_custom.h"
 #include "helpers/file_helper.h"
+#include "global_config.h"
 
 float * measure_time_custom_matrix_in_mpi(int ** edges, int * in_degrees, int * out_degrees, int nodes_count, int edges_count,
                                         int world_size, int my_id);
-
-#define EPSILON 0.0000002
-#define PRINT   0
-
 
 int main(int argc, char* argv[]) {
 
@@ -35,7 +32,8 @@ int main(int argc, char* argv[]) {
 
     if (my_id == 0){
         start = omp_get_wtime();
-        read_edges(argv[1], &edges, &out_degrees, &in_degrees, &nodes_count, &edges_count);
+        if(read_edges(argv[1], &edges, &out_degrees, &in_degrees, &nodes_count, &edges_count))
+            exit(1);
         end = omp_get_wtime();
         printf("Matrix reading time: %.4f\n", end - start);
     }

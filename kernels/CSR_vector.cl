@@ -1,7 +1,7 @@
 #define WARP_SIZE 16
 
 // computes product between matrix in CSR format and vector using multiple threads per row
-// WARP_SIZE must be set correctly to match dynamic worker allocation
+// WARP_SIZE must be set correctly to match dynamic worker allocation (same as in global_config.h)
 __kernel void mCSRmulth(__global const int *rowptr, __global const int *col, __global const float *data,
 					    __global float *vin, __global float *vout, __local float *buffer, int rows) {		
 	

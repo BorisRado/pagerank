@@ -1,5 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "../helpers/file_helper.h"
+
+
+// MATRIX DEFINITIONS
+
+struct mtx_MM       // Stores graph edge as a single data point
+{
+    int row;
+    int col;
+    float data;
+};
 
 struct mtx_COO  // COOrdinates
 {
@@ -36,12 +47,10 @@ struct mtx_ELL      // ELLiptic (developed by authors of ellipctic package)
     int num_elementsinrow;    
 };
 
-struct mtx_MM       // Stores graph edge as a single data point
-{
-    int row;
-    int col;
-    float data;
-};
+typedef struct mtx_ELL mtx_ELL;
+
+
+// TODO : Restructure matrix reading to use read_edges and not COO
 
 int mtx_COO_compare(const void * a, const void * b) { 
     struct mtx_MM aa = *(struct mtx_MM *)a;
@@ -63,7 +72,7 @@ int mtx_COO_create_from_file(struct mtx_COO * mCOO, char * file_name) {
     /*
     ** File should be formated as edge list with first line containing
     ** [node_count]\t[edge_count] and every line aferwards containing
-    ** [arc_tail]\t[arc_head] for directed graphs (both endpoints for undirected)
+    ** [arc_tail]\t[arc_head] for directed graphs (or endpoints for undirected)
     */
 
    // read file header
@@ -121,14 +130,7 @@ int mtx_COO_create_from_file(struct mtx_COO * mCOO, char * file_name) {
     return 0;
 }
 
-int mtx_COO_free(struct mtx_COO *mCOO)
-{
-    free(mCOO->data);
-    free(mCOO->col);
-    free(mCOO->row);
 
-    return 0;
-}
 
 int mtx_CSR_create_from_mtx_COO(struct mtx_CSR *mCSR, struct mtx_COO *mCOO) {
     mCSR->num_nonzeros = mCOO->num_nonzeros;
@@ -157,13 +159,7 @@ int mtx_CSR_create_from_mtx_COO(struct mtx_CSR *mCSR, struct mtx_COO *mCOO) {
     return 0;
 }
 
-int mtx_CSR_free(struct mtx_CSR *mCSR) {
-    free(mCSR->data);
-    free(mCSR->col);
-    free(mCSR->rowptr);
 
-    return 0;
-}
 
 int mtx_ELL_create_from_mtx_CSR(struct mtx_ELL *mELL, struct mtx_CSR *mCSR) {
     mELL->num_nonzeros = mCSR->num_nonzeros;
@@ -186,6 +182,26 @@ int mtx_ELL_create_from_mtx_CSR(struct mtx_ELL *mELL, struct mtx_CSR *mCSR) {
             mELL->col[ELL_j] = mCSR->col[j];
         }
     }
+
+    return 0;
+}
+
+
+// DEALLOCATION FUNCTIONS
+
+int mtx_COO_free(struct mtx_COO *mCOO)
+{
+    free(mCOO->data);
+    free(mCOO->col);
+    free(mCOO->row);
+
+    return 0;
+}
+
+int mtx_CSR_free(struct mtx_CSR *mCSR) {
+    free(mCSR->data);
+    free(mCSR->col);
+    free(mCSR->rowptr);
 
     return 0;
 }

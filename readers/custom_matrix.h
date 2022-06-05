@@ -13,58 +13,6 @@ void print_custom_matrix(int ** graph, int nodes_count) {
     }
 }
 
-int read_edges(char * file_name, int *** edges, int ** out_degrees,
-            int ** in_degrees, int * nodes_count, int * edges_count) {
-    /*
-    Reads the graph at file_name and returns an 2D array containing one 
-    entry for each edge present in the graph. `out_degrees` contains
-    the number of outgoing edges from each node
-    */
-    FILE * fp;
-    int * contiguous_space;
-    int i;
-    
-    fp = fopen(file_name, "r");
-    if (fp == NULL) {
-        printf("ERROR while reading graph `%s`", file_name);
-        exit(1);
-    }
-
-    int from, to;
-    
-    // read number of nodes and edges
-    if (fscanf(fp, "%d\t%d", nodes_count, edges_count) != 2) {
-        printf("Error while reading first line...\n");
-        return 1;
-    }
-
-    *out_degrees = (int *) calloc(*nodes_count, sizeof(int));
-    *in_degrees = (int *) calloc(*nodes_count, sizeof(int));
-    contiguous_space = (int *) malloc(2 * (*edges_count) * sizeof(int));
-    *edges = (int **) malloc((*edges_count) * sizeof(int *));
-    for (i = 0; i < (*edges_count); i++)
-        (*edges)[i] = &contiguous_space[2 * i];
-
-    i = 0;
-    while (fscanf(fp, "%d\t%d", &from, &to) != EOF) {
-        if(from < 0 || from > *nodes_count || to < 0 || to > *nodes_count)
-            printf("ERROR: Line %d, from %d to %d\n", i, from, to);
-        else {
-            (*out_degrees)[from]++;
-            (*in_degrees)[to]++;
-            (*edges)[i][0] = from;
-            (*edges)[i][1] = to;
-            i++;
-        }
-    }
-    // for (i = 0; i < *nodes_count; i++)
-    //     printf("here %d %d\n", i, (*out_degrees)[i]);
-
-    fclose(fp);
-    return 0;
-
-}
-
 int format_graph_out(int ** edges, int * out_degrees, int * leaves_count, int ** leaves, 
         int *** graph, int nodes_count, int edges_count) {
     /*

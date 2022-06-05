@@ -1,8 +1,11 @@
+#ifndef OCL_HELPER
+#define OCL_HELPER
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <CL/cl.h>
+#include "../global_config.h"
 
-#define MAX_SOURCE_SIZE (16384)
 
 float print_ocl_time(cl_event event, cl_command_queue queue, char* event_name) {
     clWaitForEvents(1, &event);
@@ -128,3 +131,5 @@ void ocl_swap_pointers(cl_mem * a, cl_mem * b) {
     *a = *b;
     *b = c;
 }
+
+#endif
