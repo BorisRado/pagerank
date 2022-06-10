@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "readers/custom_matrix.h"
 #include "readers/mtx_sparse.h"
+#include "pagerank_implementations/pagerank_custom_mpi.h"
 #include "pagerank_implementations/pagerank_custom.h"
 #include "helpers/file_helper.h"
 #include "global_config.h"
@@ -87,7 +88,8 @@ float * measure_time_custom_matrix_in_mpi(int ** edges, int * in_degrees, int * 
     if (my_id == 0)
         printf("Pagerank computation time (MPI): %.4f\n\n", end - start);
 
-    if (my_id == 0){
+    if (my_id == 0) {
+        // compute pagerank with an implementation we know works ok
         start = omp_get_wtime();
         float * pagerank = pagerank_custom_in(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, EPSILON, false);
         end = omp_get_wtime();

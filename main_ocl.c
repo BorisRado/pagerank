@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     int ** edges;
     int * out_degrees;
     int * in_degrees;
-    if(read_edges(argv[1], &edges, &out_degrees, &in_degrees, &nodes_count, &edges_count))
+    if (read_edges(argv[1], &edges, &out_degrees, &in_degrees, &nodes_count, &edges_count))
         exit(1);
     printf("Read edges.\n");
 
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     
     // compute pagerank with OCL CSR
     mtx_CSR mCSR;
-    if(get_CSR_from_edges(&mCSR, &edges, &out_degrees, &nodes_count, &edges_count) != 0) {
+    if (get_CSR_from_edges(&mCSR, &edges, &out_degrees, &nodes_count, &edges_count) != 0) {
         printf("Could not create CSR.\n");
         exit(1);
     }
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     printf("Computed OCL pagerank.\n");
 
     // compare the obtained pageranks
-    compare_vectors(ref_pagerank, csr_pagerank, nodes_count);
+    compare_vectors_detailed(ref_pagerank, csr_pagerank, nodes_count);
 
     // free data
     free(edges);

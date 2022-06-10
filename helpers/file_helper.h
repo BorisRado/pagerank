@@ -18,7 +18,7 @@ void get_graph_size(char * file_name, int * nodes_count, int * edges_count) {
 
 void write_to_file(char * file_name, float * pagerank, int nodes_count) {
     // write the vector `pagerank` with `nodes_count` elements to file with name `file_name`
-    FILE * fp = fopen(file_name, "w");
+    FILE * fp = fopen(file_name, "a");
 
     if (fp == NULL) {
         printf("Error opening file!\n");

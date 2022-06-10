@@ -10,6 +10,7 @@
 
 float * measure_time_custom_matrix_out(int ** edges, int * out_degrees, int nodes_count, int edges_count);
 float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_degrees, int nodes_count, int edges_count);
+float * measure_time_csr(int ** edges, int * in_degrees, int * out_degrees, int nodes_count, int edges_count);
 
 int main(int argc, char* argv[]) {
 

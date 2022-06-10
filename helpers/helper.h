@@ -48,4 +48,13 @@ int compare_vectors_detailed(float * a, float * b, int n) {
     return mistakes;
 }
 
+void init_pagerank(float ** pagerank_old, float ** pagerank_new, int nodes_count) {
+    *pagerank_old = (float*) malloc(nodes_count * sizeof(float));
+    *pagerank_new = (float*) malloc(nodes_count * sizeof(float));
+
+    float init_value = 1 / (float)nodes_count;
+    for (int i = 0; i < nodes_count; i++)
+        (*pagerank_old)[i] = init_value;
+}
+
 #endif
