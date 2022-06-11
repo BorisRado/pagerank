@@ -64,6 +64,7 @@ __kernel void compute_norm_difference_wg(
         gid += get_global_size(0);
     }
     partial[lid] = _diff;
+    barrier(CLK_LOCAL_MEM_FENCE);
 
     // reduction
     for(int i = (get_local_size(0) >> 1); i > 0; i >>= 1) {
@@ -133,7 +134,6 @@ __kernel void pagerank_step_simple(
     int gid = get_global_id(0);
     float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float) *nodes_count;
 
-    float pagerank_contribution;
     int i;
     int pointing_node;
 
@@ -162,7 +162,7 @@ __kernel void pagerank_step(
     __global float * leaked_pagerank_addition_glob,
     __global int * nodes_count,
     int threads_per_row,
-    __local float * partial
+    __local double * partial
 ) {
     /**
      * this kernel performs one step of pagerank computation (one "matrix multiplication").
@@ -174,9 +174,8 @@ __kernel void pagerank_step(
      */
     int lid = get_local_id(0);
     int gid = get_global_id(0);
-    float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float) *nodes_count;
+    float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float)*nodes_count;
 
-    float pagerank_contribution;
     int i;
 
     int _node = get_global_id(0) / threads_per_row;
@@ -185,7 +184,7 @@ __kernel void pagerank_step(
     int pointing_node;
     while (_node < *nodes_count) {
 
-        float i_pr = 0.;
+        double i_pr = 0.;
         for (i = _offset; i < in_degrees[_node]; i += threads_per_row){
             pointing_node = graph[in_deg_CDF[_node] + i];
             i_pr += 0.85 * pagerank_old[pointing_node] / out_degrees[pointing_node];

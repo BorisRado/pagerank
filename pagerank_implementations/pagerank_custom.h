@@ -113,7 +113,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     float *pagerank_old, *pagerank_new;
     init_pagerank(&pagerank_old, &pagerank_new, nodes_count);
     size_t local_item_size, num_groups, global_item_size;
-    int threads_per_row = 4;
+    int threads_per_row = 2;
 
     // compile kernels
     cl_int clStatus = 0;
@@ -135,7 +135,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     int kernel_leaked_pr_wi = 128, kernel_leaked_pr_wg = 1,
             kernel_norm_wg_wi = 128, kernel_norm_wg_wg = 8,
             kernel_norm_fin_wi = 32, kernel_norm_fin_wg = 1,
-            kernel_pagerank_step_wi = 512, kernel_pagerank_step_wg = 32;
+            kernel_pagerank_step_wi = 512, kernel_pagerank_step_wg = 16;
 
     // transfer all the required data to the GPU
     start = omp_get_wtime();
@@ -205,7 +205,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
         clStatus |= clSetKernelArg(kernel_pagerank_step, 4, sizeof(cl_mem), (void *)&pagerank_old_d);
         clStatus |= clSetKernelArg(kernel_pagerank_step, 5, sizeof(cl_mem), (void *)&pagerank_new_d);
         clStatus |= clSetKernelArg(kernel_pagerank_step, 6, sizeof(cl_mem), (void *)&leaked_pr_d);
-        clStatus |= clSetKernelArg(kernel_pagerank_step, 9, local_item_size * sizeof(float), NULL);
+        clStatus |= clSetKernelArg(kernel_pagerank_step, 9, local_item_size * sizeof(double), NULL);
         clStatus = clEnqueueNDRangeKernel(command_queue, kernel_pagerank_step, 1, NULL,
                         &global_item_size, &local_item_size, 0, NULL, &event);
         // check_status(clStatus, "executing kernel");
@@ -217,7 +217,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
         clStatus |= clSetKernelArg(kernel_norm_wg, 1, sizeof(cl_mem), (void *)&pagerank_new_d);
         clStatus |= clSetKernelArg(kernel_norm_wg, 2, sizeof(cl_mem), (void *)&wg_diffs_d);
         clStatus |= clSetKernelArg(kernel_norm_wg, 3, local_item_size * sizeof(float), NULL);
-        clStatus |= clSetKernelArg(kernel_norm_wg, 4, sizeof(cl_mem), &nodes_count_d);
+        clStatus |= clSetKernelArg(kernel_norm_wg, 4, sizeof(cl_mem), (void *)&nodes_count_d);
         // check_status(clStatus, "submitting args to kernel");
         clStatus = clEnqueueNDRangeKernel(command_queue, kernel_norm_wg, 1, NULL,
                         &global_item_size, &local_item_size, 0, NULL, &event);
