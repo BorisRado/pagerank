@@ -134,9 +134,9 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
 
     // define parameters for executing the kernels (WI, WG)
     int kernel_leaked_pr_wi = 1024, kernel_leaked_pr_wg = 1,
-            kernel_norm_wg_wi = 128, kernel_norm_wg_wg = 32,
+            kernel_norm_wg_wi = 1024, kernel_norm_wg_wg = 32,
             kernel_norm_fin_wi = 32, kernel_norm_fin_wg = 1,
-            kernel_pagerank_step_wi = 512, kernel_pagerank_step_wg = 16;
+            kernel_pagerank_step_wi = 1024, kernel_pagerank_step_wg = 64;
 
     // transfer all the required data to the GPU
     start = omp_get_wtime();

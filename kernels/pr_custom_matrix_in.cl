@@ -101,7 +101,7 @@ __kernel void compute_norm_difference_fin(
     for(int i = (n >> 1); i > 0; i >>= 1) {
         if(lid < i) 
             partial[lid] += partial[lid + i];
-        barrier(CLK_LOCAL_MEM_FENCE); // TO-DO: speed-up if we have max 32 work groups in the previous step?
+        // barrier(CLK_LOCAL_MEM_FENCE); // uncomment if there are more than 32 work groups in the previous step
     }
 
     if (lid == 0)

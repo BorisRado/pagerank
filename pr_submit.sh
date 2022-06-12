@@ -3,9 +3,10 @@
 #SBATCH --reservation=fri
 #SBATCH --time=0:0:50
 #SBATCH --nodes=1
-#SBATCH --ntasks=10
-#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
 #SBATCH --output=logs/logs.txt
+#SBATCH --gpus=1
 
 # TO-DO: the MPI version will fail if --gpus=1
 
@@ -25,9 +26,9 @@ module load CUDA # needed for OpenCL
 module load OpenMPI # needed for MPI
 
 # all the experiments are performed with the same graph
-# GRAPH=data/web-Google_out.txt
+GRAPH=data/web-Google_out.txt
 # GRAPH=data/toy.txt
-GRAPH=data/collaboration_imdb_out.net
+# GRAPH=data/collaboration_imdb_out.net
 # GRAPH=data/karate_club_out.net
 OUT_FILE="results/web-Google_out.txt"
 
