@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     
     // compute pagerank with OCL CSR
     mtx_CSR mCSR;
-    if (get_CSR_from_edges(&mCSR, &edges, &out_degrees, &nodes_count, &edges_count) != 0) {
+    if (get_CSR_from_file(&mCSR, argv[1]) != 0) {
         printf("Could not create CSR.\n");
         exit(1);
     }
