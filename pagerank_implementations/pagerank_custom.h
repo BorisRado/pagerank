@@ -98,6 +98,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
                 int leaves_count, int * leaves, int nodes_count, int edges_count,
                 double epsilon, double * start_global, double * end_global, char * pr_step_kernel) {
     // this function leverages the kernels implemented in `pr_custom_matrix_in.cl`
+    bool expand_out_degrees = strstr(pr_step_kernel, "expand") != NULL;
     cl_command_queue command_queue;
     cl_context context;
     cl_program program;
@@ -113,7 +114,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     float *pagerank_old, *pagerank_new;
     init_pagerank(&pagerank_old, &pagerank_new, nodes_count);
     size_t local_item_size, num_groups, global_item_size;
-    int threads_per_row = 2;
+    int threads_per_row = 8;
 
     // compile kernels
     cl_int clStatus = 0;
@@ -132,8 +133,8 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     printf("CDF time: %.5f\n", omp_get_wtime() - start);
 
     // define parameters for executing the kernels (WI, WG)
-    int kernel_leaked_pr_wi = 128, kernel_leaked_pr_wg = 1,
-            kernel_norm_wg_wi = 128, kernel_norm_wg_wg = 8,
+    int kernel_leaked_pr_wi = 1024, kernel_leaked_pr_wg = 1,
+            kernel_norm_wg_wi = 128, kernel_norm_wg_wg = 32,
             kernel_norm_fin_wi = 32, kernel_norm_fin_wg = 1,
             kernel_pagerank_step_wi = 512, kernel_pagerank_step_wg = 16;
 
@@ -151,12 +152,31 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
                                 sizeof(int), &leaves_count, &clStatus);
     cl_mem nodes_count_d = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                 sizeof(int), &nodes_count, &clStatus);
+    cl_mem edges_count_d = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                sizeof(int), &edges_count, &clStatus);
     cl_mem pagerank_old_d = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                 nodes_count * sizeof(float), pagerank_old, &clStatus);
     cl_mem in_deg_CDF_d = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                 nodes_count * sizeof(int), CDF, &clStatus);
     end = omp_get_wtime();
     printf("Data transfer to GPU time: %.4f\n", end - start);
+
+    if (expand_out_degrees) {
+        // expand out_degrees
+        update_sizes(16, 256, &local_item_size, &global_item_size, &num_groups);
+        cl_kernel kernel_expand_out_deg = clCreateKernel(program, "expand_out_degrees", &clStatus);
+        cl_mem expanded_out_degrees_d = clCreateBuffer(context, CL_MEM_READ_WRITE,
+                                    edges_count * sizeof(int), NULL, &clStatus);
+        clStatus  = clSetKernelArg(kernel_expand_out_deg, 0, sizeof(cl_mem), (void *)&edges_count_d);
+        clStatus |= clSetKernelArg(kernel_expand_out_deg, 1, sizeof(cl_mem), (void *)&out_degrees_d);
+        clStatus |= clSetKernelArg(kernel_expand_out_deg, 2, sizeof(cl_mem), (void *)&graph_d);
+        clStatus |= clSetKernelArg(kernel_expand_out_deg, 3, sizeof(cl_mem), (void *)&expanded_out_degrees_d);
+        clStatus = clEnqueueNDRangeKernel(command_queue, kernel_expand_out_deg, 1, NULL,
+                            &global_item_size, &local_item_size, 0, NULL, &event);
+        float expand_time = print_ocl_time(event, command_queue, "Expand out degrees");
+        printf("Expanding out degrees time: %f\n", expand_time);
+        out_degrees_d = expanded_out_degrees_d;
+    }
     
     // allocate additional data we will need
     cl_mem leaked_pr_d = clCreateBuffer(context, CL_MEM_READ_WRITE,
@@ -261,5 +281,18 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     printf("Average time `Norm final`: %.4f\n", times_norm_fin_kernel / iterations);
     printf("Average time per iteration: %.4f\n", (end - start) / iterations);
     ocl_destroy(command_queue, context, program);
+    ocl_release(13, graph_d,
+            in_degrees_d,
+            out_degrees_d,
+            leaves_d,
+            leaves_count_d,
+            nodes_count_d,
+            edges_count_d,
+            pagerank_old_d,
+            in_deg_CDF_d,
+            leaked_pr_d,
+            pagerank_new_d,
+            wg_diffs_d,
+            norm_d);
     return pagerank_new;
 }

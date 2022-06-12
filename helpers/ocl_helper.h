@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <CL/cl.h>
+#include <stdarg.h>
 #include "../global_config.h"
 
 
@@ -70,14 +71,12 @@ int ocl_init(char * kernel_filename, cl_command_queue * command_queue, cl_contex
         return 1;
     }
 
-
     // Context
     *context = clCreateContext(NULL, num_devices, devices, NULL, NULL, &clStatus);
     if (clStatus != CL_SUCCESS) {
         printf("Error while creating context, return value %d\n", clStatus);
         return 1;
     }
-
  
     // Command queue
     *command_queue = clCreateCommandQueue(*context, devices[0],
@@ -124,6 +123,20 @@ int ocl_destroy(cl_command_queue command_queue, cl_context context,
     clStatus = clReleaseProgram(program);
     clStatus = clReleaseCommandQueue(command_queue);
     clStatus = clReleaseContext(context);
+}
+
+int ocl_release(int n, ...) {
+    va_list ptr;
+    va_start(ptr, n);
+
+    cl_mem _object;
+    for (int i = 0; i < n; i++) {
+        _object = va_arg(ptr, cl_mem);
+        clReleaseMemObject(_object);
+    }
+
+    va_end(ptr);
+    printf("Memory objects released\n");
 }
 
 void ocl_swap_pointers(cl_mem * a, cl_mem * b) {

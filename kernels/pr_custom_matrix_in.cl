@@ -208,3 +208,85 @@ __kernel void pagerank_step(
     }
 
 }
+
+__kernel void pagerank_step_expanded(
+    __global int * graph,
+    __global int * in_deg_CDF, // used to correctly address the graph
+    __global int * in_degrees,
+    __global int * expanded_out_degrees,
+    __global float * pagerank_old,
+    __global float * pagerank_new,
+    __global float * leaked_pagerank_addition_glob,
+    __global int * nodes_count,
+    int threads_per_row,
+    __local double * partial
+) {
+    /**
+     * this kernel performs one step of pagerank computation (one "matrix multiplication").
+     * It assumes that local work group size is a multiple of `threads_per_row` and that `threads_per_row` is a power of 2
+     * 
+     * Parameters:
+     *      * `threads_per_row`: how many threads compute concurrently the new pagerank value of some node
+     *      * `leaked_pagerank_addition`: value as computed by the compute_leaked_pagerank kernel
+     */
+    int lid = get_local_id(0);
+    int gid = get_global_id(0);
+    float leaked_pagerank_addition = *leaked_pagerank_addition_glob / (float)*nodes_count;
+
+    int i, tmp_idx;
+
+    int _node = get_global_id(0) / threads_per_row;
+    int _offset = get_global_id(0) % threads_per_row;
+    int _increment = get_global_size(0) / threads_per_row;
+    int pointing_node;
+    while (_node < *nodes_count) {
+
+        double i_pr = 0.;
+        for (i = _offset; i < in_degrees[_node]; i += threads_per_row){
+            tmp_idx = in_deg_CDF[_node] + i;
+            pointing_node = graph[tmp_idx];
+            i_pr += 0.85 * pagerank_old[pointing_node] / expanded_out_degrees[tmp_idx];
+        }
+
+        // save to local memory
+        partial[lid] = i_pr;
+
+        // perform reduction
+        for (int limit = threads_per_row / 2; limit >= 1; limit /= 2) {
+            if (lid % threads_per_row < limit) {
+                partial[lid] += partial[lid + limit];
+            }
+        }
+
+        // write result back to global memory
+        if (_offset == 0)
+            pagerank_new[_node] = partial[lid] + leaked_pagerank_addition;
+
+        _node += _increment;
+    }
+
+}
+
+__kernel void expand_out_degrees(
+    __global int * edges_count,
+    __global int * out_degrees,
+    __global int * graph,
+    __global int * expand_out_degrees
+) {
+    /**
+     * expands the out degrees: instead of the one array with `nodes_count` elements,
+     * it produces one with `edges_count` elements: for each edge in the graph,
+     * it stores the out degree of the node
+     */
+    int lid = get_local_id(0);
+    int gid = get_global_id(0);
+    
+    int wg_low = get_group_id(0) * (*edges_count) / get_num_groups(0); // included
+    int wg_high = (get_group_id(0) + 1) * (*edges_count) / get_num_groups(0); // excluded
+
+    int _current = wg_low + lid;
+    while (_current < wg_high) {
+        expand_out_degrees[_current] = out_degrees[graph[_current]];
+        _current += get_local_size(0);
+    }
+}

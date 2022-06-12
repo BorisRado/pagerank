@@ -88,14 +88,21 @@ float * measure_time_custom_matrix_in(int ** edges, int * in_degrees, int * out_
 
     // ocl - pass `start` and `end` to function so not to measure compilation etc.
     float * pagerank_ocl_simple = pagerank_custom_in_ocl(graph, in_degrees, out_degrees, leaves_count,
-                    leaves ,nodes_count, edges_count, EPSILON, &start, &end, "pagerank_step_simple");
-    printf("Pagerank computation time (OCL, one thread per row): %.4f\n\n", omp_get_max_threads(), end - start);
+                    leaves, nodes_count, edges_count, EPSILON, &start, &end, "pagerank_step_simple");
+    printf("Pagerank computation time (OCL, one thread per row): %.4f\n\n", end - start);
+
 
     float * pagerank_ocl = pagerank_custom_in_ocl(graph, in_degrees, out_degrees, leaves_count,
-                    leaves ,nodes_count, edges_count, EPSILON, &start, &end, "pagerank_step");
-    printf("Pagerank computation time (OCL): %.4f\n\n", omp_get_max_threads(), end - start);
+                    leaves, nodes_count, edges_count, EPSILON, &start, &end, "pagerank_step");
+    printf("Pagerank computation time (OCL): %.4f\n\n", end - start);
+
+    float * pagerank_ocl_exp = pagerank_custom_in_ocl(graph, in_degrees, out_degrees, leaves_count,
+                    leaves ,nodes_count, edges_count, EPSILON, &start, &end, "pagerank_step_expanded");
+    printf("Pagerank computation time (expanded OCL): %.4f\n\n", end - start);
 
     compare_vectors(pagerank, pagerank_omp, nodes_count);
+    // compare_vectors(pagerank, pagerank_ocl_simple, nodes_count);
+    compare_vectors(pagerank, pagerank_ocl_exp, nodes_count);
     compare_vectors(pagerank, pagerank_ocl, nodes_count);
 
     free(graph);
