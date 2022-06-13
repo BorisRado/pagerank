@@ -82,7 +82,7 @@ float * measure_time_custom_matrix_in_mpi(int ** edges, int * in_degrees, int * 
 
     start = omp_get_wtime();
     float * pagerank_mpi = pagerank_custom_in_mpi(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, EPSILON, 
-                            my_id, world_size);
+                            true, my_id, world_size);
     end = omp_get_wtime();
     
     if (my_id == 0)

@@ -4,7 +4,7 @@
 #SBATCH --time=0:0:50
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=32
 #SBATCH --output=logs/logs.txt
 #SBATCH --gpus=1
 
