@@ -1,8 +1,9 @@
+#include <omp.h>
 #include <CL/cl.h>
 #include "../global_config.h"
 
 
-float * pagerank_CSR_vector(mtx_CSR mCSR) {
+float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
     // this function leverages the kernels implemented in `pr_custom_matrix_in.cl`
     cl_command_queue command_queue;
     cl_context context;
@@ -15,6 +16,7 @@ float * pagerank_CSR_vector(mtx_CSR mCSR) {
         exit(1);
     }
 
+    *start = omp_get_wtime();
     float * pagerank_in  = (float*) malloc(mCSR.num_cols * sizeof(float));
     float * pagerank_out = (float*) malloc(mCSR.num_cols * sizeof(float));
     for (int i = 0; i < mCSR.num_cols; i++)
@@ -96,10 +98,11 @@ float * pagerank_CSR_vector(mtx_CSR mCSR) {
         sum += pagerank_in[i];
     for(int i = 0; i < mCSR.num_cols; i++)
         pagerank_in[i] /= sum;
+    *end = omp_get_wtime();
 
     // Report results
     printf("Total number of iterations: %d\n", iterations);
-    printf("Average time per iteration: %.4f\n", dtimeCSR_multh / iterations);
+    printf("CSR - Average time per iteration: %.4f\n", dtimeCSR_multh / iterations);
 
     // Free memory structures
     clStatus = clReleaseKernel(kernelCSR_multh);

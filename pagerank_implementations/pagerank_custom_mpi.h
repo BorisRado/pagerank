@@ -9,9 +9,9 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
                 int leaves_count, int * leaves, int nodes_count, double epsilon, 
                 bool parallel_for, int my_id, int world_size) {
 
-    int my_start = floor(my_id * nodes_count / world_size);
-    int my_end = floor((my_id + 1) * nodes_count / world_size);
-    int my_node_count = (my_end - my_start);
+    int my_start = my_id * nodes_count / world_size;
+    int my_end = (my_id + 1) * nodes_count / world_size;
+    int my_node_count = my_end - my_start;
 
     // Needed in order to use MPI_Allgatherv()
     int* counts = (int* ) malloc(world_size * sizeof(int));
@@ -33,7 +33,7 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
     int i, j;
     int iterations = 0;
     bool done = false;
-        
+    
     do{
         if (my_id == 0){
             float leaked_pagerank = 0.;
@@ -41,7 +41,6 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
                 leaked_pagerank += pagerank_old[leaves[i]]; 
             }
             leaked_pagerank = leaked_pagerank + (1 - leaked_pagerank) * (1 - DAMPENING);
-            // printf("leaked... %f\n", leaked_pagerank);
             init_pagerank = leaked_pagerank / (float)nodes_count;
         }
 

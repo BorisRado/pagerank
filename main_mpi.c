@@ -78,7 +78,7 @@ float * measure_time_custom_matrix_in_mpi(int ** edges, int * in_degrees, int * 
     end = omp_get_wtime();
     
     if (my_id == 0)
-        printf("Matrix formatting time: %.4f\n", end - start);
+        printf("MPI - Matrix formatting time: %.4f\n", end - start);
 
     start = omp_get_wtime();
     float * pagerank_mpi = pagerank_custom_in_mpi(graph, in_degrees, out_degrees, leaves_count, leaves, nodes_count, EPSILON, 
@@ -86,7 +86,7 @@ float * measure_time_custom_matrix_in_mpi(int ** edges, int * in_degrees, int * 
     end = omp_get_wtime();
     
     if (my_id == 0)
-        printf("Pagerank computation time (MPI): %.4f\n\n", end - start);
+        printf("TOTAL MPI - Pagerank computation time (MPI): %.4f\n\n", end - start);
 
     if (my_id == 0) {
         // compute pagerank with an implementation we know works ok

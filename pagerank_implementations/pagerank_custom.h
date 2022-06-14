@@ -86,9 +86,8 @@ float * pagerank_custom_in(int ** graph, int * in_degrees, int * out_degrees,
 
         swap_pointers(&pagerank_old, &pagerank_new);
         iterations++;
-        if (iterations > 200) break;
-
-    } while (get_norm_difference(pagerank_old, pagerank_new, nodes_count) > epsilon);
+        if (iterations > MAX_ITER) break;
+    } while (!(CHECK_CONVERGENCE && get_norm_difference(pagerank_old, pagerank_new, nodes_count) <= epsilon));
     printf("Total pagerank iterations: %d\n", iterations);
     swap_pointers(&pagerank_old, &pagerank_new);
     return pagerank_new;
@@ -130,7 +129,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     for (int i = 1; i < nodes_count; i++) {
         CDF[i] = CDF[i-1] + in_degrees[i-1];
     }
-    printf("CDF time: %.5f\n", omp_get_wtime() - start);
+    printf("%s - CDF time: %.5f\n", pr_step_kernel, omp_get_wtime() - start);
 
     // define parameters for executing the kernels (WI, WG)
     int kernel_leaked_pr_wi = 1024, kernel_leaked_pr_wg = 1,
@@ -159,7 +158,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     cl_mem in_deg_CDF_d = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                 nodes_count * sizeof(int), CDF, &clStatus);
     end = omp_get_wtime();
-    printf("Data transfer to GPU time: %.4f\n", end - start);
+    printf("%s - Data transfer to GPU time: %.4f\n", pr_step_kernel, end - start);
 
     if (expand_out_degrees) {
         // expand out_degrees
@@ -174,7 +173,7 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
         clStatus = clEnqueueNDRangeKernel(command_queue, kernel_expand_out_deg, 1, NULL,
                             &global_item_size, &local_item_size, 0, NULL, &event);
         float expand_time = print_ocl_time(event, command_queue, "Expand out degrees");
-        printf("Expanding out degrees time: %f\n", expand_time);
+        printf("%s - Expanding out degrees time: %f\n", pr_step_kernel, expand_time);
         out_degrees_d = expanded_out_degrees_d;
     }
     
@@ -263,8 +262,8 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
 
         iterations++;
         ocl_swap_pointers(&pagerank_new_d, &pagerank_old_d);
-        if (iterations > 100) break;
-    } while (sqrt(norm) > epsilon);
+        if (iterations > MAX_ITER) break;
+    } while (!(CHECK_CONVERGENCE && sqrt(norm) <= epsilon));
     end = omp_get_wtime();
     printf("Total number of iterations: %d\n", iterations);
 
@@ -275,11 +274,11 @@ float * pagerank_custom_in_ocl(int ** graph, int * in_degrees, int * out_degrees
     *end_global = omp_get_wtime();
 
     // print average times of the kernels
-    printf("Average time `Leaked pagerank kernel`: %.4f\n", times_leaked_pr_kernel / iterations);
-    printf("Average time `Pagerank step kernel`: %.4f\n", times_pagerank_step_kernel / iterations);
-    printf("Average time `Norm work group`: %.4f\n", times_norm_wg_kernel / iterations);
-    printf("Average time `Norm final`: %.4f\n", times_norm_fin_kernel / iterations);
-    printf("Average time per iteration: %.4f\n", (end - start) / iterations);
+    printf("%s - Average time `Leaked pagerank kernel`: %.4f\n", pr_step_kernel, times_leaked_pr_kernel / iterations);
+    printf("%s - Average time `Pagerank step kernel`: %.4f\n", pr_step_kernel, times_pagerank_step_kernel / iterations);
+    printf("%s - Average time `Norm work group`: %.4f\n", pr_step_kernel, times_norm_wg_kernel / iterations);
+    printf("%s - Average time `Norm final`: %.4f\n", pr_step_kernel, times_norm_fin_kernel / iterations);
+    printf("%s - Average time per iteration: %.4f\n", pr_step_kernel, (end - start) / iterations);
     ocl_destroy(command_queue, context, program);
     ocl_release(13, graph_d,
             in_degrees_d,

@@ -39,8 +39,9 @@ int main(int argc, char* argv[]) {
         printf("Could not create CSR.\n");
         exit(1);
     }
-    float * csr_pagerank = pagerank_CSR_vector(mCSR);
-    printf("Computed OCL pagerank.\n");
+    float start, end;
+    float * csr_pagerank = pagerank_CSR_vector(mCSR, &start, &end);
+    printf("TOTAL CSR - time: %f\n", end - start);
 
     // compare the obtained pageranks
     compare_vectors_detailed(ref_pagerank, csr_pagerank, nodes_count);
