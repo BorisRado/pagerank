@@ -39,9 +39,16 @@ int main(int argc, char* argv[]) {
         printf("Could not create CSR.\n");
         exit(1);
     }
+
+    mtx_ELL mELL;
+    if (get_ELL_from_file(&mELL, argv[1]) != 0) {
+        printf("Could not create ELL.\n");
+        exit(1);
+    }
+
     float start, end;
-    float * csr_pagerank = pagerank_CSR_vector(mCSR, &start, &end);
-    printf("TOTAL CSR - time: %f\n", end - start);
+    float * csr_pagerank = pagerank_ELL(mELL, &start, &end);
+    printf("TOTAL ELL - time: %f\n", end - start);
 
     // compare the obtained pageranks
     compare_vectors_detailed(ref_pagerank, csr_pagerank, nodes_count);

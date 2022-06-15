@@ -1,11 +1,13 @@
 #ifndef GLOBAL_CONFIG
 #define GLOBAL_CONFIG
 
+// General note: make sure config is consistent with whatever kernels are used
+
 // pagerank parameters
 #define DAMPENING 0.85 // teleportation probability
 #define CHECK_CONVERGENCE 1 // if enabled, algorithm will run till converged, otherwise till max_iter
 #define EPSILON 0.0000002 // max. difference at convergence (L2 norm)
-#define MAX_ITER 100 // max. iterations of algorithm, set to 0 to disable ceiling
+#define MAX_ITER 1000 // max. iterations of algorithm, set to 0 to disable ceiling
 // DO NOT DISABLE BOTH CHECK_CONVERGENCE AND MAX_ITER!
 
 // OCL worker allocation parameters
