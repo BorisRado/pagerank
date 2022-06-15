@@ -20,7 +20,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-mpicc main_mpi.c -lm -fopenmp -lOpenCL -O2 -o compiled_code/mpi.out
+mpicc main_mpi.c -lm -fopenmp -lOpenCL -O1 -o compiled_code/mpi.out
 if [ $? -ne 0 ]; then
     echo "Compilation of main_mpi.c failed. Exiting..."
     exit 1

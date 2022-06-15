@@ -83,7 +83,7 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
             pagerank_in[i] = pagerank_in[i]*DAMPENING + (1. - DAMPENING)/mCSR.num_cols;
 
         // Check exit criteria
-        if(CHECK_CONVERGENCE && get_norm_difference(pagerank_in, pagerank_out, mCSR.num_cols) <= EPSILON)
+        if(CHECK_CONVERGENCE && get_norm_difference(pagerank_in, pagerank_out, mCSR.num_cols, false) <= EPSILON)
             break;
         
         if(MAX_ITER > 0 && iterations >= MAX_ITER)

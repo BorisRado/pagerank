@@ -10,9 +10,10 @@ float square(float val) {
 }
 
 float get_norm_difference(float * pagerank_old,
-            float * pagerank_new, int len) {
+            float * pagerank_new, int len, bool parallel_for) {
     double sum_of_squares = 0.0;
 
+    #pragma omp parallel for schedule(static) shared(pagerank_new,pagerank_old) reduction(+ : sum_of_squares) if(parallel_for)
     for (int i = 0; i < len; i++) {
         sum_of_squares += square(pagerank_new[i] - pagerank_old[i]);
     }
