@@ -29,9 +29,9 @@ module load OpenMPI # needed for MPI
 # all the experiments are performed with the same graph
 GRAPH=data/web-Google_out.txt
 # GRAPH=data/toy.txt
-GRAPH=data/collaboration_imdb_out.net
+# GRAPH=data/collaboration_imdb_out.net
 # GRAPH=data/karate_club_out.net
-# OUT_FILE="results/web-Google_out.txt"
+OUT_FILE="results/web-Google_out.txt"
 
 # empty file if it already exists. This way the programs can append to it
 rm "$OUT_FILE" 2> /dev/null

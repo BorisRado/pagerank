@@ -50,7 +50,7 @@ float * pagerank_custom_out(int ** graph, int * out_degrees, int leaves_count, i
         iterations++;
         if (iterations > 100) break;
 
-    } while (get_norm_difference(pagerank_old, pagerank_new, nodes_count) > epsilon);
+    } while (get_norm_difference(pagerank_old, pagerank_new, nodes_count, true) > epsilon);
     printf("Total pagerank iterations: %d\n", iterations);
     swap_pointers(&pagerank_old, &pagerank_new);
     return pagerank_new;
@@ -87,7 +87,7 @@ float * pagerank_custom_in(int ** graph, int * in_degrees, int * out_degrees,
         swap_pointers(&pagerank_old, &pagerank_new);
         iterations++;
         if (iterations > MAX_ITER) break;
-    } while (!(CHECK_CONVERGENCE && get_norm_difference(pagerank_old, pagerank_new, nodes_count) <= epsilon));
+    } while (!(CHECK_CONVERGENCE && get_norm_difference(pagerank_old, pagerank_new, nodes_count, parallel_for) <= epsilon));
     printf("Total pagerank iterations: %d\n", iterations);
     swap_pointers(&pagerank_old, &pagerank_new);
     return pagerank_new;

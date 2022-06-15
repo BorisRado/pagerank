@@ -5,7 +5,7 @@
 #include "../helpers/ocl_helper.h"
 #include "../global_config.h"
 
-float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees,
+float * pagerank_custom_in_mpi(int ** my_graph, int * my_in_degrees, int * my_out_degrees,
                 int leaves_count, int * leaves, int nodes_count, double epsilon, 
                 bool parallel_for, int my_id, int world_size) {
 
@@ -17,7 +17,7 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
     int* counts = (int* ) malloc(world_size * sizeof(int));
     int* displacements = (int* ) calloc(world_size, sizeof(int));
     MPI_Allgather(&my_node_count, 1, MPI_INT, counts, 1, MPI_INT, MPI_COMM_WORLD);
-    for (size_t i = 1; i < world_size; i++){
+    for (int i = 1; i < world_size; i++){
         displacements[i] = displacements[i - 1] + counts[i - 1];
     }
 
@@ -25,6 +25,9 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
     init_pagerank(&pagerank_old, &pagerank_new, nodes_count);
     
     float *my_pagerank_old, *my_pagerank_new;
+    // this initialization is technically wrong, as the init value 
+    // is not correct. but it makes no harm, as it only forces the
+    // algorithm to make at least one iteration
     init_pagerank(&my_pagerank_old, &my_pagerank_new, my_node_count);
 
     float init_pagerank;
@@ -34,7 +37,7 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
     int iterations = 0;
     bool done = false;
     
-    do{
+    do {
         if (my_id == 0){
             float leaked_pagerank = 0.;
             for (i = 0; i < leaves_count; i++) {
@@ -47,39 +50,33 @@ float * pagerank_custom_in_mpi(int ** graph, int * in_degrees, int * out_degrees
         MPI_Bcast(&init_pagerank, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
 
         // Compute local pagerank
-        #pragma omp parallel for if(parallel_for) schedule(guided) private(i,j) shared(out_degrees,graph, init_pagerank, my_start, my_end)
-        for (i = my_start; i < my_end; i++) {
+        #pragma omp parallel for if(parallel_for) schedule(guided) private(i,j) shared(my_out_degrees,my_in_degrees,my_graph, init_pagerank, my_start, my_end)
+        for (i = 0; i < my_node_count; i++) {
             float i_pr = init_pagerank;
-            for (j = 0; j < in_degrees[i]; j++){
-                i_pr += DAMPENING * pagerank_old[graph[i][j]] / out_degrees[graph[i][j]];
+            for (j = 0; j < my_in_degrees[i]; j++){
+                i_pr += DAMPENING * pagerank_old[my_graph[i][j]] / my_out_degrees[my_graph[i][j]];
             }
-            my_pagerank_new[i - my_start] = i_pr;
+            my_pagerank_new[i] = i_pr;
         }
         
         MPI_Allgatherv(my_pagerank_new, my_node_count, MPI_FLOAT, pagerank_old, 
                         counts, displacements, MPI_FLOAT, MPI_COMM_WORLD);
 
-        my_norm_diff = get_norm_difference(my_pagerank_old, my_pagerank_new, my_node_count);
+        my_norm_diff = get_norm_difference(my_pagerank_old, my_pagerank_new, my_node_count, parallel_for);
         MPI_Reduce(&my_norm_diff, &norm_diff, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-
         iterations++;
-        if (my_id == 0){
-            if (CHECK_CONVERGENCE && norm_diff < epsilon || iterations > 200){
+        if (my_id == 0) {
+            if (CHECK_CONVERGENCE && norm_diff < epsilon || iterations > 200)
+                done = true;   
+            if (MAX_ITER > 0 && iterations >= MAX_ITER)
                 done = true;
-                //printf("Converged!\n");
-            }
-            
-            if (MAX_ITER > 0 && iterations >= MAX_ITER){
-                done = true;
-                //printf("Max Iters!\n");
-            }
         }
 
         MPI_Bcast(&done, 1, MPI_C_BOOL, 0, MPI_COMM_WORLD);
         swap_pointers(&my_pagerank_old, &my_pagerank_new);
         
-    }while(!done);
+    } while(!done);
 
 
     if (my_id == 0)
