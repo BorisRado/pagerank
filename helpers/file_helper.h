@@ -87,4 +87,17 @@ int read_edges(char * file_name, int *** edges, int ** out_degrees,
     return 0;
 }
 
+void print_vendor_type() {
+    FILE *cpuinfo = fopen("/proc/cpuinfo", "r");
+    char line[256];
+    while(fgets(line, 256, cpuinfo)) {
+        if(strncmp(line, "vendor_id", 9) == 0) {
+            char *colon = strchr(line, ':');
+            printf("CPU Vendor: %s\n", &colon[2]);
+            break;
+        }
+    }
+    fclose(cpuinfo);
+}
+
 #endif

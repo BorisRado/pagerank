@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
         printf("Usage: ./a.out <graph_file_name> <out_file_name>\n");
         exit(1);
     }
+    print_vendor_type();
     int nodes_count, edges_count, i;
     double start, end;
 
