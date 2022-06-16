@@ -182,7 +182,6 @@ int get_CSR_from_edges(struct mtx_CSR *mCSR, int *** edges, int ** out_degrees, 
     return 0;
 }
 
-// UNTESTED: try with CSR converter first
 int get_ELL_from_edges(struct mtx_ELL *mELL, int *** edges, int ** out_degrees, int * nodes_count, int * edges_count) {
     int row, prev_row, row_size;
     long long ell_index;
