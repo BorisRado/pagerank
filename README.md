@@ -21,8 +21,6 @@ The currently sopported ways to store the graphs in memory are the following:
 * JDS: Jagged Diagonal Storage format, splits the matrix into submatrices with similar row lengths. Each submatrix is converted into a separate ELL format, allowing for better spatial efficiency.
 * Non-matrix based approach: in this approach, we store the graph as a 2D array. Two separate methods are implemented in this category: in the first one, the array at index `i` contains the nodes, to which the node `i` points to. Similarly, in the second approach, the array at index `i` contains the nodes that point to node `i`. In both cases, we have two additional arrays, that state the in-degrees and out-degrees of all the nodes. Also, in both cases we store an additional array, which contains the nodes that have 0 out degree (the pagerank of these nodes is lost at every iteration, and having this array speeds up the execution of the program).
 
-\* The representation is still not complete. The matrix contains only 1.0 values, but they should be normalized based on the number of neighboring nodes.
-
 ## Running the examples
 1. Add the graph to the `data` folder (create the folder if not present);
 2. Prepare the graph with `python3 py_src/prepare_graph.py <graph_file>`;
