@@ -62,6 +62,6 @@ fi
 if [[ $* == *--test-nx* ]]; then
     echo "Testing results with networkx..."
     SECONDS=0
-    ~/.venv/networkx/bin/python3 py_src/compare_pagerank.py $GRAPH $3
+    ~/.venv/networkx/bin/python3 py_src/compare_pagerank.py "$GRAPH" "$OUT_FILE"
     echo "Computation with networkx took $SECONDS seconds"
 fi

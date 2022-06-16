@@ -68,6 +68,8 @@ float * pagerank_custom_in(int ** graph, int * in_degrees, int * out_degrees,
     do {
 
         float leaked_pagerank = 0.;
+        // tried that, does not improce results
+        // #pragma omp parallel for if(parallel_for) schedule(static) shared(pagerank_old,leaves) reduction(+ : leaked_pagerank)
         for (i = 0; i < leaves_count; i++) {
             leaked_pagerank += pagerank_old[leaves[i]]; 
         }
