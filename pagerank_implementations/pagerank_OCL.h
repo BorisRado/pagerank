@@ -7,7 +7,8 @@
 #include "../helpers/helper.h"
 
 
-float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
+float * pagerank_CSR_vector(mtx_CSR mCSR) {
+    double start, end;
     cl_command_queue command_queue;
     cl_context context;
     cl_program program;
@@ -18,8 +19,6 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
         printf("Initialization failed. Exiting OCL computation.\n");
         exit(1);
     }
-
-    *start = omp_get_wtime();
 
     /*
      * DATA ALLOCATION
@@ -80,7 +79,6 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
     clStatus |=	clSetKernelArg(kernelCSR_multh, 5, WORKGROUP_SIZE*sizeof(cl_float), NULL);
 	clStatus |= clSetKernelArg(kernelCSR_multh, 6, sizeof(cl_int), (void *)&(mCSR.num_rows));
 
-
     /*
      * LAUNCH COMPUTATION
      */
@@ -96,7 +94,8 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
 
     // CSR multh write, execute, read
     int iterations = 0;
-    double dtimeCSR_multh = omp_get_wtime();
+
+    start = omp_get_wtime();
 
     while (1) {
         
@@ -142,7 +141,11 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
         }
     }
 
-    dtimeCSR_multh = omp_get_wtime() - dtimeCSR_multh;
+    end = omp_get_wtime();
+
+    printf("Total number of iterations: %d\n", iterations);
+    printf("CSR vector average time per iteration: %f\n", (end - start) / iterations);
+    printf("CSR vector OCL total computation: %f\n", end - start);
 
     if(iterations % 2 == 0)
         clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
@@ -156,12 +159,6 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
         sum += pagerank_out[i];
     for(int i = 0; i < mCSR.num_cols; i++)
         pagerank_out[i] /= sum;
-    
-    *end = omp_get_wtime();
-
-    // Report results
-    printf("Total number of iterations: %d\n", iterations);
-    printf("CSR vector - Average time per iteration: %.4f\n", dtimeCSR_multh / iterations);
 
     // Free memory structures
     clStatus = clReleaseKernel(fixPROutput);
@@ -181,7 +178,8 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
 }
 
 
-float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
+float * pagerank_CSR_scalar(mtx_CSR mCSR) {
+    double start, end;
     cl_command_queue command_queue;
     cl_context context;
     cl_program program;
@@ -192,8 +190,6 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
         printf("Initialization failed. Exiting OCL computation.\n");
         exit(1);
     }
-
-    *start = omp_get_wtime();
 
     /*
      * DATA ALLOCATION
@@ -267,7 +263,8 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
 
     // CSR write, execute, read
     int iterations = 0;
-    double dtimeCSR_basic = omp_get_wtime();
+
+    start = omp_get_wtime();
 
     while (1) {
         if(iterations % 2 == 0) {
@@ -312,7 +309,11 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
         }
     }
 
-    dtimeCSR_basic = omp_get_wtime() - dtimeCSR_basic;
+    end = omp_get_wtime();
+    
+    printf("Total number of iterations: %d\n", iterations);
+    printf("CSR scalar average time per iteration: %f\n", (end - start) / iterations);
+    printf("CSR scalar OCL total computation: %f\n", end - start);
 
     if(iterations % 2 == 0)
         clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
@@ -326,12 +327,6 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
         sum += pagerank_out[i];
     for(int i = 0; i < mCSR.num_cols; i++)
         pagerank_out[i] /= sum;
-    
-    *end = omp_get_wtime();
-
-    // Report results
-    printf("Total number of iterations: %d\n", iterations);
-    printf("CSR scalar - Average time per iteration: %.4f\n", dtimeCSR_basic / iterations);
 
     // Free memory structures
     clStatus = clReleaseKernel(fixPROutput);
@@ -350,8 +345,8 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
     return pagerank_out;
 }
 
-
-float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
+float * pagerank_ELL(mtx_ELL mELL) {
+    double start, end;
     cl_command_queue command_queue;
     cl_context context;
     cl_program program;
@@ -362,8 +357,6 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
         printf("Initialization failed. Exiting OCL computation.\n");
         exit(1);
     }
-
-    *start = omp_get_wtime();
 
     /*
      * DATA ALLOCATION
@@ -435,7 +428,8 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
 
     // ELL write, execute, read
     int iterations = 0;
-    double dtimeELL = omp_get_wtime();
+
+    start = omp_get_wtime();
 
     while (1) {
         if(iterations % 2 == 0) {
@@ -485,7 +479,10 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
         pagerank_out = tmp;
     }
 
-    dtimeELL = omp_get_wtime() - dtimeELL;
+    end = omp_get_wtime();
+    printf("Total number of iterations: %d\n", iterations);
+    printf("ELL scalar average time per iteration: %f\n", (end - start) / iterations);
+    printf("ELL scalar OCL total computation: %f\n", end - start);
 
     if(iterations % 2 == 0)
         clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
@@ -500,12 +497,6 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
         sum += pagerank_out[i];
     for(int i = 0; i < mELL.num_cols; i++)
         pagerank_out[i] /= sum;
-    
-    *end = omp_get_wtime();
-
-    // Report results
-    printf("Total number of iterations: %d\n", iterations);
-    printf("ELL - Average time per iteration: %.4f\n", dtimeELL / iterations);
 
     // Free memory structures
     clStatus = clReleaseKernel(fixPROutput);
@@ -523,7 +514,8 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
     return pagerank_out;
 }
 
-float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) {
+float * pagerank_JDS(mtx_JDS mJDS, int ** dangling) {
+    double start, end;
     cl_command_queue command_queue;
     cl_context context;
     cl_program program;
@@ -534,8 +526,6 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
         printf("Initialization failed. Exiting OCL computation.\n");
         exit(1);
     }
-
-    *start = omp_get_wtime();
 
     /*
      * DATA ALLOCATION
@@ -647,10 +637,9 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
         global_item_size_JDS[p] = num_groups * local_item_size;
     }
 
-
     // JDS write, execute, read
     int iterations = 0;
-    double dtimeJDS = omp_get_wtime();
+    start = omp_get_wtime();
 
     while (1) {
         if(iterations % 2 == 0) {
@@ -705,6 +694,11 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
 
     }
 
+    end = omp_get_wtime();
+    printf("Total number of iterations: %d\n", iterations);
+    printf("JDS scalar average time per iteration: %f\n", (end - start) / iterations);
+    printf("JDS scalar OCL total computation: %f\n", end - start);
+
     if(iterations % 2 == 0)
         clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
                                         mJDS.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
@@ -712,20 +706,12 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
         clStatus |= clEnqueueReadBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
                                         mJDS.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
 
-    dtimeJDS = omp_get_wtime() - dtimeJDS;
-
     // Normalize output
     double sum = 0.;
     for(int i = 0; i < mJDS.num_cols; i++)
         sum += pagerank_out[i];
     for(int i = 0; i < mJDS.num_cols; i++)
         pagerank_out[i] /= sum;
-    
-    *end = omp_get_wtime();
-
-    // Report results
-    printf("Total number of iterations: %d\n", iterations);
-    printf("JDS - Average time per iteration: %.4f\n", dtimeJDS / iterations);
 
     // Free memory structures
     clStatus = clReleaseKernel(fixPROutput);
@@ -749,5 +735,6 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
     free(mJDSrow_d);
     free(kernelsJDS);
     free(global_item_size_JDS);
+
     return pagerank_out;
 }

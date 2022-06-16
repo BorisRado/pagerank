@@ -15,9 +15,10 @@ This, given a file `file.txt` that contains the non-formatted graph, will create
 
 ### Graph representations
 The currently sopported ways to store the graphs in memory are the following:
-* COO*
-* CSR*
-* ELL*
+* COO: COOrdinate format, stores data in three arrays for row, column and value of each datapoint. Not suitable for parallelization.
+* CSR: Compressed Sparse Row format, stores data sorted by row in three arrays. The first two store column and value for each datapoint, whereas the third stores the pointers to the beginning of each row.
+* ELL: ELLpack format, expands each row of CSR to same length and transposes the matrix, allowing the row pointers to be discarded. Stores only column and value for each datapoint, with additional integer for number of elements per row. 
+* JDS: Jagged Diagonal Storage format, splits the matrix into submatrices with similar row lengths. Each submatrix is converted into a separate ELL format, allowing for better spatial efficiency.
 * Non-matrix based approach: in this approach, we store the graph as a 2D array. Two separate methods are implemented in this category: in the first one, the array at index `i` contains the nodes, to which the node `i` points to. Similarly, in the second approach, the array at index `i` contains the nodes that point to node `i`. In both cases, we have two additional arrays, that state the in-degrees and out-degrees of all the nodes. Also, in both cases we store an additional array, which contains the nodes that have 0 out degree (the pagerank of these nodes is lost at every iteration, and having this array speeds up the execution of the program).
 
 \* The representation is still not complete. The matrix contains only 1.0 values, but they should be normalized based on the number of neighboring nodes.

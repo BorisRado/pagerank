@@ -5,9 +5,9 @@
 
 // pagerank parameters
 #define DAMPENING 0.85 // teleportation probability
-#define CHECK_CONVERGENCE 1 // if enabled, algorithm will run till converged, otherwise till max_iter
+#define CHECK_CONVERGENCE 0 // if enabled, algorithm will run till converged, otherwise till max_iter
 #define EPSILON 0.0000002 // max. difference at convergence (L2 norm)
-#define MAX_ITER 50 // max. iterations of algorithm, set to 0 to disable ceiling
+#define MAX_ITER 200 // max. iterations of algorithm, set to 0 to disable ceiling
 // DO NOT DISABLE BOTH CHECK_CONVERGENCE AND MAX_ITER!
 
 // OCL worker allocation parameters
