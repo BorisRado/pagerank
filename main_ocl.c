@@ -43,16 +43,15 @@ int main(int argc, char* argv[]) {
         exit(1);
     }
     
-    
-    /*mtx_ELL mELL;
+     mtx_ELL mELL;
     if (get_ELL_from_file(&mELL, argv[1]) != 0) {
         printf("Could not create ELL.\n");
         exit(1);
-    }*/
+    }
 
     mtx_JDS mJDS;
     int * dangling;
-    int num_pieces = 30; // if number is too low (<=25), can return wrong answer instead of OOM error
+    int num_pieces = 4; // if number is too low (<=25), can return wrong answer instead of OOM error
     if (get_JDS_from_file(&mJDS, &dangling, &num_pieces, argv[1]) != 0) {
         printf("Could not create JDS.\n");
         exit(1);
@@ -64,14 +63,14 @@ int main(int argc, char* argv[]) {
     
     float * csr_vec_pagerank = pagerank_CSR_vector(mCSR, &start, &end);
 
-    //float * ell_pagerank = pagerank_ELL(mELL, &start, &end);
+    float * ell_pagerank = pagerank_ELL(mELL, &start, &end);
 
     float * jds_pagerank = pagerank_JDS(mJDS, &dangling, &start, &end);
 
     // compare the obtained pageranks
     compare_vectors_detailed(ref_pagerank, csr_sca_pagerank, nodes_count);
     compare_vectors_detailed(ref_pagerank, csr_vec_pagerank, nodes_count);
-    //compare_vectors_detailed(ref_pagerank, ell_pagerank, nodes_count);
+    compare_vectors_detailed(ref_pagerank, ell_pagerank, nodes_count);
     compare_vectors_detailed(ref_pagerank, jds_pagerank, nodes_count);
     
     // free data
@@ -80,7 +79,7 @@ int main(int argc, char* argv[]) {
     free(in_degrees);
     free(graph);
     mtx_CSR_free(&mCSR);
-    //mtx_ELL_free(&mELL);
+    mtx_ELL_free(&mELL);
     mtx_JDS_free(&mJDS);
 
     return 0;

@@ -99,26 +99,37 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
     double dtimeCSR_multh = omp_get_wtime();
 
     while (1) {
-        iterations++;
-
-        // Write pr_in
-        clStatus |= clEnqueueWriteBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
-                                        mCSR.num_cols*sizeof(cl_float), pagerank_in, 0, NULL, NULL);	
+        
+        if(iterations % 2 == 0) {
+            clStatus |= clSetKernelArg(kernelCSR_multh, 3, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(kernelCSR_multh, 4, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecOut_d);
+        } else {
+            clStatus |= clSetKernelArg(kernelCSR_multh, 3, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(kernelCSR_multh, 4, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecIn_d);
+        }
 
         clStatus |= clEnqueueNDRangeKernel(command_queue, kernelCSR_multh, 1, NULL,						
                                         &global_item_size_CSRpar, &local_item_size, 0, NULL, NULL);
         clStatus |= clEnqueueNDRangeKernel(command_queue, fixPROutput, 1, NULL,						
                                         &global_item_size_helpers, &local_item_size, 0, NULL, NULL);
-        
-        // Transfer pr_out
-        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
-                                        mCSR.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+
+        iterations++;
 
         // Check exit criteria
         if(MAX_ITER > 0 && iterations >= MAX_ITER)
             break;
 
         if(CHECK_CONVERGENCE) {
+            if(iterations % 2 == 0) {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecIn_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecOut_d);
+            } else {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecOut_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecIn_d);
+            }
+
             clStatus |= clEnqueueWriteBuffer(command_queue, norm_diff_d, CL_TRUE, 0,						
                                         sizeof(cl_float), &zero, 0, NULL, NULL);
             clStatus |= clEnqueueNDRangeKernel(command_queue, normDiff, 1, NULL,						
@@ -129,15 +140,16 @@ float * pagerank_CSR_vector(mtx_CSR mCSR, float * start, float * end) {
             if(norm <= EPSILON)
                 break;
         }
-
-        // Update data
-        float * tmp = pagerank_in;
-        pagerank_in = pagerank_out;
-        pagerank_out = tmp;
     }
 
     dtimeCSR_multh = omp_get_wtime() - dtimeCSR_multh;
 
+    if(iterations % 2 == 0)
+        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
+                                        mCSR.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+    else
+        clStatus |= clEnqueueReadBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
+                                        mCSR.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
     // Normalize output
     double sum = 0.;
     for(int i = 0; i < mCSR.num_cols; i++)
@@ -258,26 +270,36 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
     double dtimeCSR_basic = omp_get_wtime();
 
     while (1) {
-        iterations++;
-
-        // Write pr_in
-        clStatus |= clEnqueueWriteBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
-                                        mCSR.num_cols*sizeof(cl_float), pagerank_in, 0, NULL, NULL);	
+        if(iterations % 2 == 0) {
+            clStatus |= clSetKernelArg(kernelCSR_basic, 3, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(kernelCSR_basic, 4, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecOut_d);
+        } else {
+            clStatus |= clSetKernelArg(kernelCSR_basic, 3, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(kernelCSR_basic, 4, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecIn_d);
+        }
 
         clStatus |= clEnqueueNDRangeKernel(command_queue, kernelCSR_basic, 1, NULL,						
                                         &global_item_size_CSR, &local_item_size, 0, NULL, NULL);
         clStatus |= clEnqueueNDRangeKernel(command_queue, fixPROutput, 1, NULL,						
                                         &global_item_size_helpers, &local_item_size, 0, NULL, NULL);
         
-        // Transfer pr_out
-        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
-                                        mCSR.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+        iterations++;
 
         // Check exit criteria
         if(MAX_ITER > 0 && iterations >= MAX_ITER)
             break;
 
         if(CHECK_CONVERGENCE) {
+            if(iterations % 2 == 0) {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecIn_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecOut_d);
+            } else {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecOut_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecIn_d);
+            }
+
             clStatus |= clEnqueueWriteBuffer(command_queue, norm_diff_d, CL_TRUE, 0,						
                                         sizeof(cl_float), &zero, 0, NULL, NULL);
             clStatus |= clEnqueueNDRangeKernel(command_queue, normDiff, 1, NULL,						
@@ -288,15 +310,16 @@ float * pagerank_CSR_scalar(mtx_CSR mCSR, float * start, float * end) {
             if(norm <= EPSILON)
                 break;
         }
-
-        // Update data
-        float * tmp = pagerank_in;
-        pagerank_in = pagerank_out;
-        pagerank_out = tmp;
     }
 
     dtimeCSR_basic = omp_get_wtime() - dtimeCSR_basic;
 
+    if(iterations % 2 == 0)
+        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
+                                        mCSR.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+    else
+        clStatus |= clEnqueueReadBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
+                                        mCSR.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
     // Normalize output
     double sum = 0.;
     for(int i = 0; i < mCSR.num_cols; i++)
@@ -415,26 +438,36 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
     double dtimeELL = omp_get_wtime();
 
     while (1) {
-        iterations++;
-
-        // Write pr_in
-        clStatus |= clEnqueueWriteBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
-                                        mELL.num_cols*sizeof(cl_float), pagerank_in, 0, NULL, NULL);	
+        if(iterations % 2 == 0) {
+            clStatus |= clSetKernelArg(kernelELL, 2, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(kernelELL, 3, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecOut_d);
+        } else {
+            clStatus |= clSetKernelArg(kernelELL, 2, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(kernelELL, 3, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecIn_d);
+        }
 
         clStatus |= clEnqueueNDRangeKernel(command_queue, kernelELL, 1, NULL,						
                                         &global_item_size_ELL, &local_item_size, 0, NULL, NULL);
         clStatus |= clEnqueueNDRangeKernel(command_queue, fixPROutput, 1, NULL,						
                                         &global_item_size_helpers, &local_item_size, 0, NULL, NULL);
         
-        // Transfer pr_out
-        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
-                                        mELL.num_rows*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+        iterations++;
 
         // Check exit criteria
         if(MAX_ITER > 0 && iterations >= MAX_ITER)
             break;
 
         if(CHECK_CONVERGENCE) {
+            if(iterations % 2 == 0) {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecIn_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecOut_d);
+            } else {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecOut_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecIn_d);
+            }
+
             clStatus |= clEnqueueWriteBuffer(command_queue, norm_diff_d, CL_TRUE, 0,						
                                         sizeof(cl_float), &zero, 0, NULL, NULL);
             clStatus |= clEnqueueNDRangeKernel(command_queue, normDiff, 1, NULL,						
@@ -453,6 +486,13 @@ float * pagerank_ELL(mtx_ELL mELL, float * start, float * end) {
     }
 
     dtimeELL = omp_get_wtime() - dtimeELL;
+
+    if(iterations % 2 == 0)
+        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
+                                        mELL.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+    else
+        clStatus |= clEnqueueReadBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
+                                        mELL.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
 
     // Normalize output
     double sum = 0.;
@@ -613,11 +653,21 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
     double dtimeJDS = omp_get_wtime();
 
     while (1) {
-        iterations++;
-
-        // Write pr_in
-        clStatus |= clEnqueueWriteBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
-                                        mJDS.num_cols*sizeof(cl_float), pagerank_in, 0, NULL, NULL);	
+        if(iterations % 2 == 0) {
+            for(int p = 0; p < mJDS.num_pieces; p++) {
+                clStatus |= clSetKernelArg(kernelsJDS[p], 3, sizeof(cl_mem), (void *)&vecIn_d);
+                clStatus |= clSetKernelArg(kernelsJDS[p], 4, sizeof(cl_mem), (void *)&vecOut_d);
+            }
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecOut_d);
+            clStatus |= clSetKernelArg(nullifyDangling, 0, sizeof(cl_mem), (void *)&vecOut_d);
+        } else {
+            for(int p = 0; p < mJDS.num_pieces; p++) {
+                clStatus |= clSetKernelArg(kernelsJDS[p], 3, sizeof(cl_mem), (void *)&vecOut_d);
+                clStatus |= clSetKernelArg(kernelsJDS[p], 4, sizeof(cl_mem), (void *)&vecIn_d);
+            }
+            clStatus |= clSetKernelArg(fixPROutput, 0, sizeof(cl_mem), (void *)&vecIn_d);
+            clStatus |= clSetKernelArg(nullifyDangling, 0, sizeof(cl_mem), (void *)&vecIn_d);
+        }
 
         for(int p = 0; p < mJDS.num_pieces; p++)
             clStatus |= clEnqueueNDRangeKernel(command_queue, kernelsJDS[p], 1, NULL,						
@@ -627,15 +677,21 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
         clStatus |= clEnqueueNDRangeKernel(command_queue, fixPROutput, 1, NULL,						
                                         &global_item_size_helpers, &local_item_size, 0, NULL, NULL);
         
-        // Transfer pr_out
-        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
-                                        mJDS.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+        iterations++;
 
         // Check exit criteria
         if(MAX_ITER > 0 && iterations >= MAX_ITER)
             break;
 
         if(CHECK_CONVERGENCE) {
+            if(iterations % 2 == 0) {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecIn_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecOut_d);
+            } else {
+                clStatus |= clSetKernelArg(normDiff, 0, sizeof(cl_mem), (void *)&vecOut_d);
+                clStatus |= clSetKernelArg(normDiff, 1, sizeof(cl_mem), (void *)&vecIn_d);
+            }
+
             clStatus |= clEnqueueWriteBuffer(command_queue, norm_diff_d, CL_TRUE, 0,						
                                         sizeof(cl_float), &zero, 0, NULL, NULL);
             clStatus |= clEnqueueNDRangeKernel(command_queue, normDiff, 1, NULL,						
@@ -647,11 +703,14 @@ float * pagerank_JDS(mtx_JDS mJDS, int ** dangling, float * start, float * end) 
                 break;
         }
 
-        // Update data
-        float * tmp = pagerank_in;
-        pagerank_in = pagerank_out;
-        pagerank_out = tmp;
     }
+
+    if(iterations % 2 == 0)
+        clStatus |= clEnqueueReadBuffer(command_queue, vecOut_d, CL_TRUE, 0,						
+                                        mJDS.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
+    else
+        clStatus |= clEnqueueReadBuffer(command_queue, vecIn_d, CL_TRUE, 0,						
+                                        mJDS.num_cols*sizeof(cl_float), pagerank_out, 0, NULL, NULL);
 
     dtimeJDS = omp_get_wtime() - dtimeJDS;
 
